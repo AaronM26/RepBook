@@ -105,39 +105,3 @@ struct LoginView: View {
             monitor.start(queue: queue)
         }
     }
-
-
-struct ContentView: View {
-    @EnvironmentObject var viewModel: ReminderXViewModel
-    @State private var isAuthenticated: Bool = false
-    @State private var userInfo: UserInfo?
-
-    var body: some View {
-        Group {
-            if isAuthenticated, let userInfo = userInfo {
-                MainAppView(viewModel: _viewModel, userInfo: userInfo) // Pass userInfo here
-            } else {
-                LoginView(isAuthenticated: $isAuthenticated)
-            }
-        }
-        .onAppear {
-            isAuthenticated = KeychainManager.load(service: "YourAppService", account: "userId") != nil
-            fetchUserDataIfNeeded()
-        }
-    }
-
-    private func fetchUserDataIfNeeded() {
-        if isAuthenticated {
-            // Retrieve the user ID from Keychain and fetch user data
-            if let memberIdData = KeychainManager.load(service: "YourAppService", account: "userId"),
-               let memberIdString = String(data: memberIdData, encoding: .utf8),
-               let memberId = Int(memberIdString) {
-                NetworkManager.fetchUserDataAndMetrics(memberId: memberId) { fetchedUserInfo in
-                    DispatchQueue.main.async {
-                        self.userInfo = fetchedUserInfo
-                    }
-                }
-            }
-        }
-    }
-}

@@ -1,5 +1,46 @@
 import Foundation
 import SwiftUI
+import Combine
+
+class AppViewModel: ObservableObject {
+    @Published var isAuthenticated: Bool = false
+}
+
+// Define the Workout data structure
+struct Workout: Identifiable {
+    let id = UUID()
+    let title: String
+    let subtitle: String
+    let imageName: String
+    let requiresEquipment: Bool
+    let duration: Int // Duration in minutes
+    let caloriesBurned: Int
+    // Add more properties as needed
+}
+
+// Define TagView for Workout Metadata
+struct TagView: View {
+    var text: String
+    var color: Color
+
+    var body: some View {
+        Text(text)
+            .font(.caption)
+            .padding(5)
+            .background(RoundedRectangle(cornerRadius: 10).fill(color.opacity(0.04)))
+            .foregroundColor(color)
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(color, lineWidth: 1)
+            )
+    }
+}
+
+class UserWorkouts: ObservableObject {
+    @Published var workouts: [Workout] = []
+    
+    // Add functions to add, remove, or modify workouts
+}
 
 struct UserInfo: Decodable {
     var firstName: String
@@ -11,6 +52,8 @@ struct UserInfo: Decodable {
     var benchMaxKg: Int
     var squatMaxKg: Int
     var bmi: Double
+    var username: String
+    var email: String // Added email property
 }
 
 struct Folder: Identifiable, Codable {

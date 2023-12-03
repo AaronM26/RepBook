@@ -13,6 +13,7 @@ struct AITool: Identifiable {
 
 struct HomeView: View {
     @ObservedObject var viewModel: ReminderXViewModel
+    var userInfo: UserInfo
     @State private var blurBackground: Bool = false
     @State private var accentColor: Color = Color.pink
     @State private var showingQuickReminderSheet = false
@@ -29,16 +30,18 @@ struct HomeView: View {
     private let cardHeight: CGFloat = 93
     private let cardShadowRadius: CGFloat = 5
     private var greeting: String {
-        let hour = Calendar.current.component(.hour, from: Date())
-        
-        if hour >= 4 && hour < 12 {
-            return "Good Morning"
-        } else if hour >= 12 && hour < 17 {
-            return "Good Afternoon"
-        } else {
-            return "Good Evening"
+            let hour = Calendar.current.component(.hour, from: Date())
+            
+            let nameGreeting = " \(userInfo.firstName)"  // Use firstName from userInfo
+            
+            if hour >= 4 && hour < 12 {
+                return "Good Morning" + nameGreeting
+            } else if hour >= 12 && hour < 17 {
+                return "Good Afternoon" + nameGreeting
+            } else {
+                return "Good Evening" + nameGreeting
+            }
         }
-    }
     
     private var currentColorScheme: (dark: Color, med: Color, light: Color) {
         return ColorSchemeOption(rawValue: userColorSchemeRawValue)?.colors ?? (.darkMulti1, .medMulti1, .lightMulti1)
@@ -74,8 +77,8 @@ struct HomeView: View {
                                     )
                                 )
                                 .padding(.all, 0)
-                                .blur(radius: 35)
-                                .frame(height: 95)
+                                .blur(radius: 45)
+                                .frame(height: 85)
                             
                             HStack {
                                 VStack(alignment: .leading, spacing: 8) {
@@ -115,7 +118,7 @@ struct HomeView: View {
                                     
                                     // Blue card
                                     wrappedCardView {
-                                        NavigationLink(destination: VideoEditorHomeView()) {
+                                        NavigationLink(destination: WorkoutView()) {
                                             cardView(color: .white, text: "Workouts", subtext: "14 workouts saved")
                                         }
                                     }
@@ -123,12 +126,9 @@ struct HomeView: View {
                             }
                         }
                         .padding(.horizontal)
-                        Spacer()
-                        Spacer()
-                        Spacer()
-                    
+                
                         wrappedCardView {
-                            NavigationLink(destination: VideoEditorHomeView()) {
+                            NavigationLink(destination: WorkoutView()) {
                                 quadHeightCardView(selectedCardIndex: $selectedCardIndex, color: .blue, currentColorScheme: currentColorScheme)
                             }
                             .padding(.horizontal)
@@ -186,8 +186,40 @@ struct HomeView: View {
             .shadow(color: Color.primary.opacity(0.1), radius: cardShadowRadius, x: 0, y: cardShadowRadius)
     }
     
+    private func cardView(gymLogo: String, action: (() -> Void)? = nil, doubleHeight: Bool = false) -> some View {
+        NavigationLink(destination: WorkoutView()) {
+            HStack(spacing: 15) {
+                // Gym Logo
+                Image(gymLogo) // Replace with your image name or system image
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 50, height: 50)
+
+                VStack(alignment: .leading) {
+                    // Title - "Membership"
+                    Text("Membership")
+                        .font(.system(size: 20, weight: .bold))
+                        .bold()
+                        .italic()
+                        .foregroundColor(.primary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    // Subtext - "Tap to edit"
+                    Text("Tap to edit")
+                        .font(.system(size: 14, weight: .regular, design: .rounded))
+                        .foregroundColor(.primary.opacity(0.4))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            .padding()
+            .frame(height: doubleHeight ? cardHeight * 2 : cardHeight)
+            .background(Color(.systemBackground))
+            .cornerRadius(20)
+        }
+    }
+    
     private func cardView(color: Color, text: String, subtext: String = "", action: (() -> Void)? = nil, doubleHeight: Bool = false, mainTextFontSize: CGFloat = 20, subTextFontSize: CGFloat = 14) -> some View {
-        NavigationLink(destination: VideoEditorHomeView()) {
+        NavigationLink(destination: WorkoutView()) {
             VStack(alignment: .leading) {
                 Text(text)
                     .font(.system(size: 20, weight: .bold))
@@ -207,9 +239,9 @@ struct HomeView: View {
         }
     }
 
+
     private func doubleHeightCardView(color: Color, action: (() -> Void)? = nil) -> some View {
         Button(action: {
-            // existing action code
         }) {
             VStack(alignment: .leading, spacing: 10) { // Maintain the overall spacing
                 TabView(selection: $currentTabIndex) {
@@ -435,159 +467,7 @@ struct HomeView: View {
             }
         }
     }
-
-    struct CustomGraphCardView: View {
-        var titleNumberPairs: [(title: String, number: Int)]
-        var currentColorScheme: (dark: Color, med: Color, light: Color)
-
-        var body: some View {
-            HStack {
-                // Left side (30%)
-                VStack(alignment: .leading, spacing: 13) {
-                    ForEach(titleNumberPairs, id: \.title) { pair in
-                        VStack(alignment: .leading, spacing: 0) {
-                            Text(pair.title)
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundColor(.black)
-                            Text("\(pair.number)")
-                                .font(.title)
-                                .fontWeight(.bold)
-                                .foregroundColor(currentColorScheme.med)
-                                .italic()
-                        }
-                    }
-                }
-                .frame(width: UIScreen.main.bounds.width * 0.17)
-                .padding(.vertical) // Adds vertical spacing
-
-                // Right side (70%)
-                ZStack {
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(currentColorScheme.med.opacity(0.05))
-                        .shadow(color: currentColorScheme.dark.opacity(0.1), radius: 3, x: -5, y: -5)
-                        .shadow(color: currentColorScheme.light.opacity(0.1), radius: 3, x: 5, y: 5)
-
-                    // Replace this with the real graph data you have
-                    let exampleGraphData = GraphData(points: [10, 20, 15, 30, 25, 30, 15, 20, 10])
-                    
-                    // Updated Line Graph
-                    LineGraph(data: exampleGraphData, colorScheme: currentColorScheme)
-                }
-                .frame(width: UIScreen.main.bounds.width * 0.63)
-                .frame(height: UIScreen.main.bounds.height * 0.25)
-                .padding(.vertical) // Adds vertical spacing
-            }
-        }
-    }
-
-    struct GraphData {
-        var points: [CGFloat] // Raw data points
-        
-        // Normalize a single data point to fit within the graph's bounds
-        func normalizedPoint(index: Int, frame: CGRect) -> CGPoint {
-            let xPosition = frame.width * CGFloat(index) / CGFloat(points.count - 1)
-            let yPosition = (1 - (points[index] - minValue) / (maxValue - minValue)) * frame.height
-            return CGPoint(x: xPosition, y: yPosition)
-        }
-        
-        // Compute the maximum and minimum data values for scaling
-        var maxValue: CGFloat { points.max() ?? 0 }
-        var minValue: CGFloat { points.min() ?? 0 }
-        
-        // Find the indices of the peak and valley points for labeling
-        var peakIndex: Int? { points.indices.max(by: { points[$0] < points[$1] }) }
-        var valleyIndex: Int? { points.indices.max(by: { points[$0] > points[$1] }) }
-    }
-
-    struct GraphGrid: View {
-        var data: GraphData
-        var body: some View {
-            GeometryReader { geometry in
-                Path { path in
-                    // Draw the horizontal grid lines
-                    for i in 0...4 {
-                        let y = geometry.size.height * CGFloat(i) / 4
-                        path.move(to: CGPoint(x: 0, y: y))
-                        path.addLine(to: CGPoint(x: geometry.size.width, y: y))
-                    }
-                }
-                .stroke(Color.gray.opacity(0.3))
-                
-                // Vertical lines
-                Path { path in
-                    for i in 0..<data.points.count {
-                        let x = geometry.size.width * CGFloat(i) / CGFloat(data.points.count - 1)
-                        path.move(to: CGPoint(x: x, y: 0))
-                        path.addLine(to: CGPoint(x: x, y: geometry.size.height))
-                    }
-                }
-                .stroke(Color.gray.opacity(0.3))
-            }
-        }
-    }
-
-    struct GraphLine: View {
-        var data: GraphData
-        var colorScheme: (dark: Color, med: Color, light: Color)
-        
-        var body: some View {
-            GeometryReader { geometry in
-                Path { path in
-                    let firstPoint = data.normalizedPoint(index: 0, frame: geometry.frame(in: .local))
-                    path.move(to: firstPoint)
-                    for index in data.points.indices {
-                        let nextPoint = data.normalizedPoint(index: index, frame: geometry.frame(in: .local))
-                        path.addLine(to: nextPoint)
-                    }
-                }
-                .stroke(colorScheme.light, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-            }
-        }
-    }
-
-    struct GraphPoints: View {
-        var data: GraphData
-        var colorScheme: (dark: Color, med: Color, light: Color)
-        
-        var body: some View {
-            GeometryReader { geometry in
-                ForEach(data.points.indices, id: \.self) { index in
-                    Circle()
-                        .frame(width: 8, height: 8)
-                        .foregroundColor(colorScheme.dark)
-                        .position(data.normalizedPoint(index: index, frame: geometry.frame(in: .local)))
-                }
-                if let peakIndex = data.peakIndex {
-                    Text("\(data.points[peakIndex], specifier: "%.1f")")
-                        .offset(x: data.normalizedPoint(index: peakIndex, frame: geometry.frame(in: .local)).x,
-                                y: data.normalizedPoint(index: peakIndex, frame: geometry.frame(in: .local)).y - 20)
-                }
-                if let valleyIndex = data.valleyIndex {
-                    Text("\(data.points[valleyIndex], specifier: "%.1f")")
-                        .offset(x: data.normalizedPoint(index: valleyIndex, frame: geometry.frame(in: .local)).x,
-                                y: data.normalizedPoint(index: valleyIndex, frame: geometry.frame(in: .local)).y + 10)
-                }
-            }
-        }
-    }
-
-    struct LineGraph: View {
-        var data: GraphData
-        var colorScheme: (dark: Color, med: Color, light: Color)
-        
-        var body: some View {
-            ZStack {
-                GraphGrid(data: data)
-                GraphLine(data: data, colorScheme: colorScheme)
-                GraphPoints(data: data, colorScheme: colorScheme)
-            }
-            .clipped()
-            .padding(.horizontal, 15)
-            .padding(.vertical, 15)
-        }
-    }
-
+    
     // Example usage in the aiToolCardView
     private func aiToolCardView(selectedCardIndex: Binding<Int>, currentColorScheme: (dark: Color, med: Color, light: Color)) -> some View {
         let exampleData: [(title: String, number: Int)] = [

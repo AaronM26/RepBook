@@ -11,6 +11,9 @@ struct MakeAccountView: View {
     @State private var isAccountInfoCompleted = false
     @State private var isEmailValid: Bool = true
     @State private var passwordWarning: String = ""
+    @State private var username: String = ""
+    @State private var isUsernameAvailable: Bool? = nil
+    @State private var debounceTimer: Timer?
     
     // Account Info
     @State private var firstName: String = ""
@@ -48,11 +51,24 @@ struct MakeAccountView: View {
     }
 
     
-    // MARK: - Account Info Form
     var accountInfoForm: some View {
         VStack {
             formField(title: "First Name", text: $firstName)
             formField(title: "Last Name", text: $lastName)
+
+            // Style the Username TextField similar to other fields
+            formField(title: "Username", text: $username)
+                .onChange(of: username) { _ in
+                    debounceUsernameCheck()
+                }
+            if let isAvailable = isUsernameAvailable {
+                Image(systemName: isAvailable ? "checkmark.circle" : "xmark.circle")
+                    .foregroundColor(isAvailable ? .green : .red)
+            }
+            if let isAvailable = isUsernameAvailable {
+                Image(systemName: isAvailable ? "checkmark.circle" : "xmark.circle")
+                    .foregroundColor(isAvailable ? .green : .red)
+            }
             DatePicker("Date of Birth", selection: $dateOfBirth, displayedComponents: .date)
                 .padding()
                 .background(Color.white.opacity(0.95))
@@ -97,7 +113,7 @@ struct MakeAccountView: View {
             }
             
             if allFieldsValid() {
-                Button("Continue to Health Metrics") {
+                Button("Sign Up") {
                     isAccountInfoCompleted = true
                     signUpUser()
                 }
@@ -134,11 +150,37 @@ struct MakeAccountView: View {
         let numberRange = password.rangeOfCharacter(from: .decimalDigits)
         return numberRange != nil
     }
+
+    private func debounceUsernameCheck() {
+        debounceTimer?.invalidate()
+        debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [self] _ in
+            self.checkUsernameAvailability()
+        }
+    }
     
     private func validateEmail() {
         let emailRegEx = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"
         let emailTest = NSPredicate(format:"SELF MATCHES %@", emailRegEx)
         isEmailValid = emailTest.evaluate(with: email)
+    }
+    func checkUsernameAvailability() {
+        guard !username.isEmpty else {
+            isUsernameAvailable = nil
+            return
+        }
+
+        // Call API endpoint
+        if let url = URL(string: "http://localhost:3000/checkUsername/\(username)") {
+            URLSession.shared.dataTask(with: url) { data, response, error in
+                if let data = data {
+                    if let response = try? JSONDecoder().decode([String: Bool].self, from: data) {
+                        DispatchQueue.main.async {
+                            self.isUsernameAvailable = response["isAvailable"]
+                        }
+                    }
+                }
+            }.resume()
+        }
     }
     
     private func allFieldsValid() -> Bool {
@@ -150,19 +192,19 @@ struct MakeAccountView: View {
         dateFormatter.dateFormat = "yyyy-MM-dd"
 
         // Prepare the URL
-        guard let url = URL(string: "http://192.168.0.152:3000/signup") else { return }
+        guard let url = URL(string: "http://localhost:3000/signup") else { return }
         
         // Format the dateOfBirth to a string
         let dobString = dateFormatter.string(from: dateOfBirth)
         
-        // Create the JSON data to send
         let userData: [String: Any] = [
-            "firstName": firstName,
-            "lastName": lastName,
-            "dateOfBirth": dobString,
-            "email": email,
-            "password": password
-        ]
+                "firstName": firstName,
+                "lastName": lastName,
+                "dateOfBirth": dobString,
+                "email": email,
+                "password": password,
+                "username": username  // Add username here
+            ]
         
         // Create a URLRequest
         var request = URLRequest(url: url)

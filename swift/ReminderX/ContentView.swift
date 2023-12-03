@@ -34,6 +34,43 @@ class ReminderXViewModel: ObservableObject {
     }
 }
 
+struct ContentView: View {
+    @EnvironmentObject var viewModel: ReminderXViewModel
+    @State private var isAuthenticated: Bool = false
+    @State private var userInfo: UserInfo?
+
+
+    var body: some View {
+        Group {
+            if isAuthenticated, let userInfo = userInfo {
+                MainAppView(viewModel: _viewModel, userInfo: userInfo) // Pass keyboardResponder
+            } else {
+                LoginView(isAuthenticated: $isAuthenticated)
+            }
+        }
+        .onAppear {
+            isAuthenticated = KeychainManager.load(service: "YourAppService", account: "userId") != nil
+            fetchUserDataIfNeeded()
+        }
+        .environment(\.colorScheme, .light) // Enforce light mode
+    }
+
+    private func fetchUserDataIfNeeded() {
+        if isAuthenticated {
+            // Retrieve the user ID from Keychain and fetch user data
+            if let memberIdData = KeychainManager.load(service: "YourAppService", account: "userId"),
+               let memberIdString = String(data: memberIdData, encoding: .utf8),
+               let memberId = Int(memberIdString) {
+                NetworkManager.fetchUserDataAndMetrics(memberId: memberId) { fetchedUserInfo in
+                    DispatchQueue.main.async {
+                        self.userInfo = fetchedUserInfo
+                    }
+                }
+            }
+        }
+    }
+}
+
 struct MainAppView: View {
     @EnvironmentObject var viewModel: ReminderXViewModel
     var userInfo: UserInfo
@@ -45,13 +82,13 @@ struct MainAppView: View {
                 Group {
                     switch selection {
                     case 0:
-                        HomeView(viewModel: viewModel)
+                        HomeView(viewModel: viewModel, userInfo: userInfo)
                     case 1:
-                        VideoEditorHomeView()
+                        WorkoutView()
                     case 2:
                         AiView(viewModel: viewModel)
                     case 3:
-                        AiView(viewModel: viewModel)
+                        SettingsView(userInfo: userInfo)
                     default:
                         EmptyView()
                     }

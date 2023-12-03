@@ -1,5 +1,3 @@
-import Alamofire
-import Network
 import Foundation
 import Security
 
@@ -30,5 +28,14 @@ class KeychainManager {
         guard status == noErr else { return nil }
 
         return (item as? Data)
+    }
+    static func delete(service: String, account: String) -> OSStatus {
+            let query = [
+                kSecClass as String: kSecClassGenericPassword,
+                kSecAttrService as String: service,
+                kSecAttrAccount as String: account
+            ] as [String: Any]
+
+            return SecItemDelete(query as CFDictionary)
     }
 }

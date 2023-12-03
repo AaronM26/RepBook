@@ -20,7 +20,7 @@ struct LoginAccountView: View {
                 .frame(maxWidth: .infinity)
                 .padding(30)
 
-            TextField("Email", text: $email)
+            TextField("Username or Email", text: $email)
                 .padding()
                 .background(Color.white.opacity(0.95))
                 .clipShape(RoundedRectangle(cornerRadius: 15))
@@ -73,7 +73,7 @@ struct LoginAccountView: View {
     }
 
     func loginUser() {
-        guard let url = URL(string: "http://192.168.0.152:3000/login") else {
+        guard let url = URL(string: "http://localhost:3000/login") else {
             errorMessage = "Invalid URL"
             return
         }
