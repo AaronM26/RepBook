@@ -15,7 +15,6 @@ struct AiView: View {
     @State private var showMiniCards = false
     @State private var keyboardHeight: CGFloat = 0
     @State private var navbarVisible: Bool = true
-    @ObservedObject var viewModel: ReminderXViewModel
     @State private var isTyping = false
     @State private var typingMessage = ""
     @State private var aiTypingMessage = ""
@@ -24,7 +23,7 @@ struct AiView: View {
     @State private var gradientRotation: Double = 0
     let columns: [GridItem] = Array(repeating: .init(.flexible()), count: 2)
     let gradientColors = [ColorSchemeManager.shared.currentColorScheme.med, ColorSchemeManager.shared.currentColorScheme.light]
-    let api = ChatGPTAPI(apiKey: "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")
+    let api = ChatGPTAPI(apiKey: "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")
     
     var body: some View {
         GeometryReader { geometry in
@@ -93,7 +92,6 @@ struct AiView: View {
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 startListeningForKeyboardNotifications()
-                loadMessages() // Add this line
                 if messages.isEmpty {
                 }
                 withAnimation(Animation.linear(duration: 8).repeatForever(autoreverses: false)) {
@@ -114,12 +112,11 @@ struct AiView: View {
         private func sendMessage() {
             let message = ChatMessage(text: userMessage, isUser: true)
             messages.append(message)
-            saveMessages()
             userMessage = ""
             lastSentMessageDate = Date()
             
             isWaitingForResponse = true
-            fetchChatGPTResponse(viewModel: viewModel, prompt: message.text) { result in
+            fetchChatGPTResponse(prompt: message.text) { result in
                 switch result {
                 case .success(let (messageID, aiMessageText)):
                     DispatchQueue.main.async {
@@ -137,14 +134,14 @@ struct AiView: View {
             }
         }
         
-        private func fetchChatGPTResponse(viewModel: ReminderXViewModel, prompt: String, completion: @escaping (Result<(UUID, String), Error>) -> Void) {
-            let reminders = viewModel.folders.flatMap { $0.reminders }
+        private func fetchChatGPTResponse(prompt: String, completion: @escaping (Result<(UUID, String), Error>) -> Void) {
             let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
             let currentTime = dateFormatter.string(from: Date())
             let chat = """
-            Act as NodeAI, a calendar assistant specializing conversating effectivly about user tasks. These are the users reminders so STRICTLY refer only to these in your response, it might be empty. \(reminders) when responding. If no reminders are available, do not create or imagine any, as the user may simply have none at the moment. Ensure proper capitalization and use natural language when communicating. Format dates and times as they would be spoken or written in everyday conversation, rather than replicating the format from the list. Keep in mind the current date: \(currentTime). user's prompt here: \(prompt).
-            """
+                Act as FitnessAI, an intelligent fitness assistant specializing in providing workout advice, exercise suggestions, and fitness planning. You're equipped with knowledge about various exercises, workout routines, fitness tips, and basic nutrition advice. Respond to user queries with helpful, accurate, and concise fitness guidance. Please do not create or imagine information outside of these topics. Use natural language and ensure proper capitalization. Keep responses relevant to the user's query and fitness goals. Current date: \(currentTime). User's prompt: \(prompt).
+                """
+
             Task {
                 do {
                     let stream = try await api.sendMessageStream(text: chat)
@@ -191,7 +188,6 @@ struct AiView: View {
                         messages.append(ChatMessage(text: aiMessageText, isUser: false))
                         typingMessages.removeAll { $0.0 == messageID }
                         isWaitingForResponse = false
-                        saveMessages() // Add this line
                     }
                 case .failure(let error):
                     print(error.localizedDescription)
@@ -200,69 +196,46 @@ struct AiView: View {
         }
         
         
-        
-        private func chatMessageView(message: ChatMessage) -> some View {
-            VStack(alignment: .leading) {
-                HStack {
-                    RoundedRectangle(cornerRadius: 11)
-                        .fill(message.isUser
-                              ? LinearGradient(gradient: Gradient(colors: [.black, .black]), startPoint: .top, endPoint: .bottom)
-                              : LinearGradient(gradient: Gradient(colors: [ColorSchemeManager.shared.currentColorScheme.med.opacity(0.5), ColorSchemeManager.shared.currentColorScheme.med.opacity(0.3)]), startPoint: .top, endPoint: .bottom)
-                        )
-                        .frame(width: 52, height: 30)
-                        .overlay(
-                            Text(message.isUser ? "You" : "Node")
-                                .font(.system(size: 15, design: .rounded))
-                                .foregroundColor(message.isUser ? .white : .white)
-                        )
-                        .shadow(color: .gray.opacity(0.6), radius: 5, x: 0, y: 5)
-                    Spacer()
+    private func chatMessageView(message: ChatMessage) -> some View {
+        VStack(alignment: message.isUser ? .trailing : .leading) {
+            HStack {
+                if !message.isUser {
+                        Text("Node")
+                            .font(.system(size: 15, design: .rounded))
+                            .foregroundColor(.gray.opacity(0.5))
                 }
-                HStack {
-                    VStack(alignment: .leading) {
-                        Text(message.text)
-                            .padding(EdgeInsets(top: 10, leading: 15, bottom: 10, trailing: 15))
-                            .background(Color.white)
-                            .cornerRadius(15)
-                            .shadow(color: .gray.opacity(0.2), radius: 5, x: 0, y: 5)
-                            .foregroundColor(message.isUser ? .black : .black)
-                    }
-                    Spacer()
+                Spacer()
+                if message.isUser {
+                        Text("You")
+                            .font(.system(size: 15, design: .rounded))
+                            .foregroundColor(.gray.opacity(0.5))
                 }
             }
             .padding(.horizontal)
-            .padding(.bottom)
-        }
-        
-        
-        
-        private func saveMessages() {
-            let encoder = JSONEncoder()
-            if let encodedMessages = try? encoder.encode(messages) {
-                UserDefaults.standard.set(encodedMessages, forKey: "SavedMessages")
+            
+            HStack {
+                if message.isUser { Spacer() }
+                VStack(alignment: .leading) {
+                    Text(message.text)
+                        .padding(EdgeInsets(top: 10, leading: 15, bottom: 10, trailing: 15))
+                        .background(Color.white)
+                        .cornerRadius(13)
+                        .shadow(color: .gray.opacity(0.2), radius: 3, x: 2, y: 2)
+                        .foregroundColor(.black)
+                }
+                if !message.isUser { Spacer() }
             }
+            .padding(.horizontal)
         }
-        
-        private func loadMessages() {
-            let decoder = JSONDecoder()
-            if let savedMessagesData = UserDefaults.standard.data(forKey: "SavedMessages"),
-               let decodedMessages = try? decoder.decode([ChatMessage].self, from: savedMessagesData) {
-                messages = decodedMessages
-            }
-        }
+    }
+
         
         private func typingMessageView(typingMessage: String) -> some View {
             VStack(alignment: .leading) {
                 HStack {
-                    RoundedRectangle(cornerRadius: 11)
-                        .fill(LinearGradient(gradient: Gradient(colors: [ColorSchemeManager.shared.currentColorScheme.med.opacity(0.5), ColorSchemeManager.shared.currentColorScheme.med.opacity(0.3)]), startPoint: .top, endPoint: .bottom))
-                        .frame(width: 52, height: 30)
-                        .overlay(
-                            Text("HiveAI")
+                            Text("Node")
                                 .font(.system(size: 13))
-                                .foregroundColor(.white)
-                        )
-                        .shadow(color: .gray.opacity(0.2), radius: 5, x: 0, y: 5)
+                                .foregroundColor(.gray.opacity(0.5))
                     Spacer()
                 }
                 HStack {
@@ -270,8 +243,8 @@ struct AiView: View {
                         Text(typingMessage)
                             .padding(EdgeInsets(top: 10, leading: 15, bottom: 10, trailing: 15))
                             .background(Color.white)
-                            .cornerRadius(15)
-                            .shadow(color: .gray.opacity(0.2), radius: 5, x: 0, y: 5)
+                            .cornerRadius(10)
+                            .shadow(color: .gray.opacity(0.2), radius: 3, x: 2, y: 2)
                             .foregroundColor(.black)
                     }
                     Spacer()
@@ -279,12 +252,6 @@ struct AiView: View {
             }
             .padding(.horizontal)
             .padding(.bottom)
-        }
-    }
-    
-    struct AiView_Previews: PreviewProvider {
-        static var previews: some View {
-            AiView(viewModel: ReminderXViewModel())
         }
     }
     

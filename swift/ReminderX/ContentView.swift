@@ -6,62 +6,37 @@ import Network
 import Foundation
 import Security
 
-class ReminderXViewModel: ObservableObject {
-    @Published var folders: [Folder] = [] {
-        didSet {
-            saveFolders()
-        }
-    }
-    @Published var showQuickReminderView: Bool = false
-    @Published var showCreateFolderView: Bool = false
-    private let foldersKey = "folders"
-    
-    init() {
-        loadFolders()
-    }
-    
-    private func saveFolders() {
-        if let encodedFolders = try? JSONEncoder().encode(folders) {
-            UserDefaults.standard.set(encodedFolders, forKey: foldersKey)
-        }
-    }
-    
-    private func loadFolders() {
-        if let data = UserDefaults.standard.data(forKey: foldersKey),
-           let decodedFolders = try? JSONDecoder().decode([Folder].self, from: data) {
-            folders = decodedFolders
-        }
-    }
-}
-
 struct ContentView: View {
-    @EnvironmentObject var viewModel: ReminderXViewModel
     @State private var isAuthenticated: Bool = false
     @State private var userInfo: UserInfo?
-
-
+    @State private var userMetrics: [MemberMetric] = [] // Updated to hold an array of MemberMetric
+    
     var body: some View {
         Group {
             if isAuthenticated, let userInfo = userInfo {
-                MainAppView(viewModel: _viewModel, userInfo: userInfo) // Pass keyboardResponder
+                MainAppView(userMetrics: userMetrics, userInfo: userInfo)
             } else {
                 LoginView(isAuthenticated: $isAuthenticated)
             }
         }
         .onAppear {
             isAuthenticated = KeychainManager.load(service: "YourAppService", account: "userId") != nil
-            fetchUserDataIfNeeded()
+                       fetchUserDataIfNeeded()
+                       fetchUserMetricsIfNeeded()
         }
-        .environment(\.colorScheme, .light) // Enforce light mode
+        .environment(\.colorScheme, .light)
     }
-
+    
     private func fetchUserDataIfNeeded() {
         if isAuthenticated {
-            // Retrieve the user ID from Keychain and fetch user data
+            // Retrieve the user ID and auth key from Keychain and fetch user data
             if let memberIdData = KeychainManager.load(service: "YourAppService", account: "userId"),
                let memberIdString = String(data: memberIdData, encoding: .utf8),
-               let memberId = Int(memberIdString) {
-                NetworkManager.fetchUserDataAndMetrics(memberId: memberId) { fetchedUserInfo in
+               let memberId = Int(memberIdString),
+               let authKeyData = KeychainManager.load(service: "YourAppService", account: "authKey"),
+               let authKey = String(data: authKeyData, encoding: .utf8) {
+                
+                NetworkManager.fetchUserDataAndMetrics(memberId: memberId, authKey: authKey) { fetchedUserInfo in
                     DispatchQueue.main.async {
                         self.userInfo = fetchedUserInfo
                     }
@@ -69,10 +44,32 @@ struct ContentView: View {
             }
         }
     }
+    private func fetchUserMetricsIfNeeded() {
+        if isAuthenticated {
+            // Retrieve the user ID and auth key from Keychain and fetch user metrics
+            if let memberIdData = KeychainManager.load(service: "YourAppService", account: "userId"),
+               let memberIdString = String(data: memberIdData, encoding: .utf8),
+               let memberId = Int(memberIdString),
+               let authKeyData = KeychainManager.load(service: "YourAppService", account: "authKey"),
+               let authKey = String(data: authKeyData, encoding: .utf8) {
+                
+                NetworkManager.fetchMemberMetrics(memberId: memberId, authKey: authKey) { result in
+                    DispatchQueue.main.async {
+                        switch result {
+                        case .success(let fetchedMetrics):
+                            self.userMetrics = fetchedMetrics
+                        case .failure(let error):
+                            print("Error fetching user metrics: \(error)")
+                            // Handle the error accordingly
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
-
 struct MainAppView: View {
-    @EnvironmentObject var viewModel: ReminderXViewModel
+    var userMetrics: [MemberMetric] // Array of MemberMetric
     var userInfo: UserInfo
     @State private var selection: Int = 0
 
@@ -82,16 +79,16 @@ struct MainAppView: View {
                 Group {
                     switch selection {
                     case 0:
-                        HomeView(viewModel: viewModel, userInfo: userInfo)
-                    case 1:
-                        WorkoutView()
-                    case 2:
-                        AiView(viewModel: viewModel)
-                    case 3:
-                        SettingsView(userInfo: userInfo)
-                    default:
-                        EmptyView()
-                    }
+                        HomeView(userInfo: userInfo, userMetrics: userMetrics)
+                                       case 1:
+                                           WorkoutView()
+                                       case 2:
+                                           AiView()
+                                       case 3:
+                        SettingsView(userInfo: userInfo, userMetrics: userMetrics)
+                                       default:
+                                               EmptyView()
+                                           }
                 }
             }
             CustomTabBar(selection: $selection)
@@ -112,11 +109,5 @@ struct MainAppView: View {
         default:
             return ""
         }
-    }
-}
-
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView().environmentObject(ReminderXViewModel())
     }
 }

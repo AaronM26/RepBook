@@ -20,7 +20,7 @@ extension Color {
 struct NeumorphicGraphCardView: View {
     var data: GraphData
     var colorScheme: (dark: Color, med: Color, light: Color)
-
+    
     var body: some View {
         RoundedRectangle(cornerRadius: 25)
             .fill(Color.offWhite) // Card color
@@ -31,6 +31,70 @@ struct NeumorphicGraphCardView: View {
                 LineGraph(data: data, colorScheme: colorScheme)
                     .padding(20) // Padding for the graph inside the card
             )
+    }
+}
+
+struct WeightEntryView: View {
+    @Binding var weight: String
+    @Binding var unit: WeightUnit
+
+    var body: some View {
+        HStack {
+            TextField("Weight", text: $weight)
+                .keyboardType(.decimalPad)
+                .onChange(of: weight) { newValue in
+                    let filtered = newValue.filter { "0123456789.".contains($0) }
+                    weight = filtered
+                }
+                .frame(width: 80)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+
+            Picker("Unit", selection: $unit) {
+                Text("lb").tag(WeightUnit.lbs)
+                Text("kg").tag(WeightUnit.kg)
+            }
+            .pickerStyle(SegmentedPickerStyle())
+            .frame(width: 100)
+        }
+    }
+}
+
+struct HeightEntryView: View {
+    @Binding var heightFeet: String
+    @Binding var heightInches: String
+
+    var body: some View {
+        HStack {
+            TextField("Feet", text: $heightFeet)
+                .keyboardType(.numberPad)
+                .onChange(of: heightFeet) { newValue in
+                    let filtered = newValue.filter { "0123456789".contains($0) }
+                    if let intValue = Int(filtered), intValue <= 9 {
+                        heightFeet = filtered
+                    } else {
+                        heightFeet = String(filtered.prefix(1))
+                    }
+                }
+                .frame(width: 50)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+
+            Text("ft")
+
+            TextField("Inches", text: $heightInches)
+                .keyboardType(.numberPad)
+                .onChange(of: heightInches) { newValue in
+                    let filtered = newValue.filter { "0123456789".contains($0) }
+                    if let intValue = Int(filtered), intValue <= 12 {
+                        heightInches = filtered
+                    } else {
+                        heightInches = String(filtered.prefix(2))
+                    }
+                }
+                .frame(width: 50)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+
+            Text("in")
+        }
     }
 }
 
@@ -73,6 +137,135 @@ struct WorkoutPlanCardView: View {
     }
 }
 
+struct WorkoutPreviewCardView: View {
+    @Binding var workoutName: String
+    @Binding var selectedExercises: [Exercise]
+    let colorScheme = ColorSchemeManager.shared.currentColorScheme
+    var body: some View {
+        VStack(alignment: .leading) {
+            HStack {
+                // Workout Name Field
+                TextField("Workout Name", text: $workoutName)
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                Spacer()
+
+                // Exercise Counter
+                Text("\(selectedExercises.count) Exercises")
+                    .foregroundColor(.gray)
+                    .padding(.trailing)
+            }
+            .padding(5)
+            // Exercises Preview
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 15) {
+                    ForEach(selectedExercises) { exercise in
+                        ExerciseCardView(exercise: exercise, onRemove: {
+                            if let index = selectedExercises.firstIndex(where: { $0.id == exercise.id }) {
+                                selectedExercises.remove(at: index)
+                            }
+                        })
+                    }
+                }
+            }
+        }
+        .padding()
+    }
+}
+
+struct ExerciseCardView: View {
+    var exercise: Exercise
+    var onRemove: () -> Void
+    @State private var reps: Int = 10 // Default reps
+    let colorScheme = ColorSchemeManager.shared.currentColorScheme
+
+    // Define constants for the desired width and height
+    private let cardWidth: CGFloat = 270 // Example width, adjust as needed
+    private let cardHeight: CGFloat = 100 // Example height, adjust as needed
+
+    var body: some View {
+        VStack(alignment: .leading) {
+            // Title and Trash icon
+            HStack {
+                Text(exercise.name)
+                    .font(.title3)
+                    .fontWeight(.bold)
+                Spacer()
+                Button(action: onRemove) {
+                    Image(systemName: "trash")
+                        .foregroundColor(Color.gray)
+                }
+            }
+
+            // Description
+            Text(exercise.description)
+                .font(.footnote)
+                .foregroundColor(.gray)
+
+            // Tags
+            HStack {
+                TagView(text: exercise.muscleGroup, color: colorScheme.med)
+                TagView(text: exercise.difficulty, color: colorScheme.med)
+                TagView(text: exercise.workoutType, color: colorScheme.med)
+                if exercise.equipmentNeeded {
+                    TagView(text: "Equipment", color: colorScheme.med)
+                }
+            }
+        }
+        .padding()
+        .frame(width: cardWidth, height: cardHeight)
+        .background(Color.gray.opacity(0.05))
+        .cornerRadius(15)
+    }
+}
+
+struct WorkoutCardView: View {
+    var workout: Workout // Assuming Workout struct holds workout details
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                // Workout Title
+                Text(workout.workoutName)
+                    .font(.title2)
+                    .fontWeight(.bold)
+                Menu {
+                    Button("Edit", action: editWorkout)
+                    Button("Delete", action: deleteWorkout)
+                    Button("Rename", action: renameWorkout)
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .imageScale(.large)
+                        .foregroundColor(.black)
+                        .padding()
+                }
+            }
+
+            Text("\(workout.exerciseIds.count) exercises")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+        }
+        .padding()
+        .frame(maxWidth: .infinity) // Makes the card take up the full width of the screen
+        .background(Color.gray.opacity(0.05))
+        .cornerRadius(15)
+        .padding(.horizontal) // Adds padding on the sides for some space from screen edges
+    }
+
+    private func editWorkout() {
+        // Implement edit workout functionality
+    }
+
+    private func deleteWorkout() {
+        // Implement delete workout functionality
+    }
+
+    private func renameWorkout() {
+        // Implement rename workout functionality
+    }
+}
+
+
 struct WorkoutPreviewScrollView: View {
     let workouts: [String]
     @State private var currentIndex: Int = 0
@@ -97,43 +290,55 @@ struct WorkoutPreviewScrollView: View {
     }
 }
 
-// Define the Workout Card View
-struct WorkoutCard: View {
-    let workout: Workout
+struct ExerciseCard: View {
+    let exercise: Exercise
+    let colorScheme = ColorSchemeManager.shared.currentColorScheme
+    var onAdd: () -> Void
+
     var body: some View {
         HStack {
-            Image(workout.imageName)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .frame(width: 80, height: 80)
-                .clipped()
-                .cornerRadius(10)
-
             VStack(alignment: .leading, spacing: 5) {
-                Text(workout.title)
+                Text(exercise.name)
                     .font(.headline)
-
-                Text(workout.subtitle)
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
-
-                HStack {
-                    TagView(text: workout.requiresEquipment ? "Equipment" : "No Equipment",
-                            color: ColorSchemeManager.shared.currentColorScheme.dark)
-                    TagView(text: "\(workout.duration) min",
-                            color: ColorSchemeManager.shared.currentColorScheme.dark)
-                    TagView(text: "\(workout.caloriesBurned) kcal",
-                            color: ColorSchemeManager.shared.currentColorScheme.dark)
-                }
             }
 
             Spacer()
+
+            // Button placed outside the VStack but within the HStack
+            Button(action: onAdd) {
+                Image(systemName: "plus")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 12, height: 12)
+                    .padding(9)
+                    .foregroundColor(.black.opacity(0.7))
+                    .cornerRadius(10)
+            }
+            .padding(.trailing, 10) // Add some trailing padding to align properly
         }
-        .padding() // Padding inside the card
-        .background(RoundedRectangle(cornerRadius: 25).fill(Color.gray.opacity(0.05)))
-        .padding(.horizontal) // Padding around the card, inside the scroll view
+        .padding()
+        .background(RoundedRectangle(cornerRadius: 20).fill(Color.gray.opacity(0.05)))
+        .padding(.horizontal)
     }
 }
+
+
+struct CompressedExerciseCard: View {
+    let exercise: Exercise
+
+    var body: some View {
+        VStack(alignment: .leading) {
+            Text(exercise.name)
+                .font(.headline)
+            Text(exercise.muscleGroup)
+                .font(.subheadline)
+        }
+        .padding()
+        .frame(width: 150, height: 80)
+        .background(RoundedRectangle(cornerRadius: 15).fill(Color.gray.opacity(0.05)))
+    }
+}
+
 
 struct CustomTabBar: View {
     @Binding var selection: Int
@@ -164,7 +369,6 @@ struct CustomTabBar: View {
                 .clipShape(RoundedRectangle(cornerRadius: 19))
                 .padding([.leading, .trailing], 20)
         )
-        .padding(.bottom, 6)
     }
     
     func tabImageName(for index: Int) -> String {
@@ -176,7 +380,7 @@ struct CustomTabBar: View {
         case 2:
             return "message.fill"
         case 3:
-            return "gear"
+            return "gearshape.fill"
         default:
             return ""
         }

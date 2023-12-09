@@ -3,8 +3,11 @@ import Foundation
 
 struct SettingsView: View {
     var userInfo: UserInfo
-    @State private var height: Double = 170
-    @State private var weight: Double = 70
+    var userMetrics: [MemberMetric]
+    @State private var heightFeet: String = "5"
+    @State private var heightInches: String = "6"
+    @State private var weight: String = "70"
+    @State private var weightUnit: WeightUnit = .lbs
 
     var body: some View {
         ScrollView {
@@ -13,103 +16,111 @@ struct SettingsView: View {
                     .font(.title)
                     .bold()
                     .padding(.top, 10)
-                
                 settingsSection(title: "Personal Information", settings: personalInformationSettings())
                 settingsSection(title: "Health Metrics", settings: healthMetricsSettings())
                 settingsSection(title: "Workout Preferences", settings: workoutPreferencesSettings())
                 settingsSection(title: "Nutrition", settings: nutritionSettings())
                 settingsSection(title: "App Settings", settings: appSettings())
-                
+
                 Button(action: logOut) {
                     Text("Log Out")
                         .frame(maxWidth: .infinity)
+                        .font(.title3)
                         .padding()
-                        .padding(.horizontal)
-                        .background(Color.black.opacity(0.8))
+                        .background(Color.black)
                         .foregroundColor(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 15))
+                        .clipShape(RoundedRectangle(cornerRadius: 18))
                 }
+                .padding(.horizontal)
             }
+            .padding(.bottom, 80) // Adjust this value based on the height of your nav bar
         }
-        .padding(.horizontal, 2)
     }
-
+    
     private func personalInformationSettings() -> [SettingItem<AnyView>] {
         [
             SettingItem(iconName: "person.fill", title: "First Name", actionView: AnyView(Text(userInfo.firstName))),
             SettingItem(iconName: "person.fill", title: "Last Name", actionView: AnyView(Text(userInfo.lastName))),
             SettingItem(iconName: "envelope.fill", title: "Email", actionView: AnyView(Text(userInfo.email))),
             SettingItem(iconName: "calendar", title: "Date of Birth", actionView: AnyView(Text(userInfo.dateOfBirth))),
-            // ... more personal information settings
         ]
     }
-
+    
     private func healthMetricsSettings() -> [SettingItem<AnyView>] {
-        [
-            SettingItem(iconName: "figure.walk", title: "Gender", actionView: AnyView(Text("Male"))),
-            SettingItem(iconName: "arrow.up.and.down", title: "Height", actionView: AnyView(Slider(value: $height, in: 100...250))),
-            SettingItem(iconName: "scalemass.fill", title: "Weight", actionView: AnyView(Slider(value: $weight, in: 30...200))),
-            SettingItem(iconName: "heart.fill", title: "Resting Heart Rate", actionView: AnyView(Text("70 BPM"))),
-            // ... more health metrics settings
-        ]
-    }
-
+         [
+             SettingItem(iconName: "figure.walk", title: "Gender", actionView: AnyView(Text("Male"))),
+             SettingItem(iconName: "arrow.up.and.down", title: "Height", actionView: AnyView(HeightEntryView(heightFeet: $heightFeet, heightInches: $heightInches))),
+             SettingItem(iconName: "scalemass.fill", title: "Weight", actionView: AnyView(WeightEntryView(weight: $weight, unit: $weightUnit))),
+             SettingItem(iconName: "heart.fill", title: "Resting Heart Rate", actionView: AnyView(Text("70 BPM"))),
+             // ... add more health metrics settings if needed ...
+         ]
+     }
+    
     private func workoutPreferencesSettings() -> [SettingItem<AnyView>] {
         [
             SettingItem(iconName: "flame.fill", title: "Fitness Goal", actionView: AnyView(Text("Weight Loss"))),
             SettingItem(iconName: "clock.fill", title: "Preferred Workout Time", actionView: AnyView(Text("Morning"))),
             SettingItem(iconName: "location.fill", title: "Preferred Workout Location", actionView: AnyView(Text("Outdoor"))),
-            // ... more workout preferences settings
         ]
     }
-
+    
     private func nutritionSettings() -> [SettingItem<AnyView>] {
         [
             SettingItem(iconName: "leaf.fill", title: "Dietary Preferences", actionView: AnyView(Text("Vegetarian"))),
             SettingItem(iconName: "applelogo", title: "Daily Caloric Intake", actionView: AnyView(Text("2000 kcal"))),
             SettingItem(iconName: "cup.and.saucer.fill", title: "Water Intake Goal", actionView: AnyView(Text("2L"))),
-            // ... more nutrition settings
         ]
     }
-
+    
     private func appSettings() -> [SettingItem<AnyView>] {
         [
             SettingItem(iconName: "paintbrush.fill", title: "Theme Color", actionView: AnyView(Text("Blue"))),
             SettingItem(iconName: "gear", title: "Language", actionView: AnyView(Text("English"))),
-            // ... more app settings
         ]
     }
-
+    
     @ViewBuilder
-       private func settingsSection(title: String, settings: [SettingItem<AnyView>]) -> some View {
-           VStack(alignment: .leading, spacing: 0) {  // No spacing between items
-               Text(title)
-                   .font(.headline)
-                   .padding(.vertical, 5)
-                   .frame(maxWidth: .infinity, alignment: .leading)
-                   .padding(.horizontal)
-
-               ForEach(settings.indices, id: \.self) { index in
-                   let isFirst = index == settings.startIndex
-                   let isLast = index == settings.index(before: settings.endIndex)
-                   SettingItemView(setting: settings[index], isFirst: isFirst, isLast: isLast)
-               }
-           }
-           .padding(.horizontal)
-       }
-    // Your existing functions like changeName, changeUsername, logOut
-
+    private func settingsSection(title: String, settings: [SettingItem<AnyView>]) -> some View {
+        VStack(alignment: .leading, spacing: 0) {  // No spacing between items
+            Text(title)
+                .font(.headline)
+                .padding(.vertical, 5)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal)
+            
+            ForEach(settings.indices, id: \.self) { index in
+                let isFirst = index == settings.startIndex
+                let isLast = index == settings.index(before: settings.endIndex)
+                SettingItemView(setting: settings[index], isFirst: isFirst, isLast: isLast)
+            }
+        }
+        .padding(.horizontal)
+    }
+    
     private func changeName() {
         // Logic to change the name
     }
-
+    
     private func changeUsername() {
         // Logic to change the username
     }
-
+    
     private func logOut() {
-        // Implement without changing the value of isAuthenticated
+        KeychainManager.delete(service: "YourAppService", account: "userId")
+        NotificationCenter.default.post(name: NSNotification.Name("UserDidLogOut"), object: nil)
     }
+    
+    private func settingItemView(iconName: String, title: String) -> some View {
+            HStack {
+                Image(systemName: iconName)
+                Text(title)
+                Spacer()
+            }
+            .padding()
+            .background(Color.gray.opacity(0.1))
+            .cornerRadius(20)
+        }
+
 }
 
 struct SettingItemView<Content: View>: View {
@@ -125,8 +136,8 @@ struct SettingItemView<Content: View>: View {
             setting.actionView
         }
         .padding()
-        .background(Color.gray.opacity(0.05))
-        .cornerRadius(15, corners: isFirst ? [.topLeft, .topRight] : isLast ? [.bottomLeft, .bottomRight] : [])
+        .background(Color.gray.opacity(0.1))
+        .cornerRadius(20, corners: isFirst ? [.topLeft, .topRight] : isLast ? [.bottomLeft, .bottomRight] : [])
     }
 }
 

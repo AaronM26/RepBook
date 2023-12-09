@@ -43,7 +43,7 @@ enum ColorSchemeOption: Int, CaseIterable {
     var colors: (dark: Color, med: Color, light: Color) {
         switch self {
         case .system:
-            return (Color(.systemGray), Color(.black), Color(.systemGray2))
+            return (Color.black.opacity(0.5), Color.black.opacity(0.65), Color(.systemGray4))
         case .red:
             return (ColorScheme.darkColor, ColorScheme.medColor, ColorScheme.lightColor)
         case .orange:

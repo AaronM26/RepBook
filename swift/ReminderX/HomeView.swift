@@ -12,8 +12,10 @@ struct AITool: Identifiable {
 }
 
 struct HomeView: View {
-    @ObservedObject var viewModel: ReminderXViewModel
     var userInfo: UserInfo
+    var userMetrics: [MemberMetric]
+    @State private var memberMetrics: MemberMetric?
+    @State private var workouts: [Workout] = []
     @State private var blurBackground: Bool = false
     @State private var accentColor: Color = Color.pink
     @State private var showingQuickReminderSheet = false
@@ -30,18 +32,18 @@ struct HomeView: View {
     private let cardHeight: CGFloat = 93
     private let cardShadowRadius: CGFloat = 5
     private var greeting: String {
-            let hour = Calendar.current.component(.hour, from: Date())
-            
-            let nameGreeting = " \(userInfo.firstName)"  // Use firstName from userInfo
-            
-            if hour >= 4 && hour < 12 {
-                return "Good Morning" + nameGreeting
-            } else if hour >= 12 && hour < 17 {
-                return "Good Afternoon" + nameGreeting
-            } else {
-                return "Good Evening" + nameGreeting
-            }
+        let hour = Calendar.current.component(.hour, from: Date())
+        
+        let nameGreeting = " \(userInfo.firstName)"  // Use firstName from userInfo
+        
+        if hour >= 4 && hour < 12 {
+            return "Good Morning" + nameGreeting
+        } else if hour >= 12 && hour < 17 {
+            return "Good Afternoon" + nameGreeting
+        } else {
+            return "Good Evening" + nameGreeting
         }
+    }
     
     private var currentColorScheme: (dark: Color, med: Color, light: Color) {
         return ColorSchemeOption(rawValue: userColorSchemeRawValue)?.colors ?? (.darkMulti1, .medMulti1, .lightMulti1)
@@ -106,14 +108,12 @@ struct HomeView: View {
                             // The rest of your cards
                             ForEach(0..<1) { _ in
                                 wrappedCardView {
-                                    TripleHeightCardView(currentColorScheme: [currentColorScheme.dark, currentColorScheme.med, currentColorScheme.light])
+                                    TripleHeightCardView(currentColorScheme: [currentColorScheme.dark, currentColorScheme.med, currentColorScheme.light], memberMetrics: $memberMetrics)
                                 }
                                 VStack(spacing: 20) {
                                     // Red card
                                     wrappedCardView {
-                                        doubleHeightCardView(color: .white, action: {
-                                            showingQuickReminderSheet.toggle()
-                                        })
+                                        doubleHeightCardView(color: .white)
                                     }
                                     
                                     // Blue card
@@ -126,13 +126,13 @@ struct HomeView: View {
                             }
                         }
                         .padding(.horizontal)
-                
                         wrappedCardView {
                             NavigationLink(destination: WorkoutView()) {
                                 quadHeightCardView(selectedCardIndex: $selectedCardIndex, color: .blue, currentColorScheme: currentColorScheme)
                             }
                             .padding(.horizontal)
                             .padding(.bottom)
+                            .padding(.top)
                         }
                         .padding(.horizontal)
                         .onAppear {
@@ -186,38 +186,6 @@ struct HomeView: View {
             .shadow(color: Color.primary.opacity(0.1), radius: cardShadowRadius, x: 0, y: cardShadowRadius)
     }
     
-    private func cardView(gymLogo: String, action: (() -> Void)? = nil, doubleHeight: Bool = false) -> some View {
-        NavigationLink(destination: WorkoutView()) {
-            HStack(spacing: 15) {
-                // Gym Logo
-                Image(gymLogo) // Replace with your image name or system image
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 50, height: 50)
-
-                VStack(alignment: .leading) {
-                    // Title - "Membership"
-                    Text("Membership")
-                        .font(.system(size: 20, weight: .bold))
-                        .bold()
-                        .italic()
-                        .foregroundColor(.primary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                    // Subtext - "Tap to edit"
-                    Text("Tap to edit")
-                        .font(.system(size: 14, weight: .regular, design: .rounded))
-                        .foregroundColor(.primary.opacity(0.4))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            }
-            .padding()
-            .frame(height: doubleHeight ? cardHeight * 2 : cardHeight)
-            .background(Color(.systemBackground))
-            .cornerRadius(20)
-        }
-    }
-    
     private func cardView(color: Color, text: String, subtext: String = "", action: (() -> Void)? = nil, doubleHeight: Bool = false, mainTextFontSize: CGFloat = 20, subTextFontSize: CGFloat = 14) -> some View {
         NavigationLink(destination: WorkoutView()) {
             VStack(alignment: .leading) {
@@ -238,172 +206,101 @@ struct HomeView: View {
             .cornerRadius(20)
         }
     }
-
-
-    private func doubleHeightCardView(color: Color, action: (() -> Void)? = nil) -> some View {
-        Button(action: {
-        }) {
-            VStack(alignment: .leading, spacing: 10) { // Maintain the overall spacing
-                TabView(selection: $currentTabIndex) {
-                    VStack(spacing: 10) { // Adjust individual spacing if needed
-                        Image(systemName: "figure.run")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(height: 50)
-                            .foregroundColor(currentColorScheme.light)
-                        Text("Personal Training")
-                            .bold()
-                            .font(.title)
-                            .foregroundColor(currentColorScheme.med)
-                            .fixedSize(horizontal: false, vertical: true) // Allows text to wrap
-                            .lineLimit(2) // Limits to two lines
-                    }.tag(0)
-                    
-                    VStack(spacing: 4) { // Adjust individual spacing if needed
-                        
-                        Image(systemName: "person.3.fill")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(height: 50)
-                            .scaleEffect(0.7)
-                            .foregroundColor(currentColorScheme.light)
-                        Text("Group Sessions")
-                            .bold()
-                            .font(.title)
-                            .foregroundColor(currentColorScheme.med)
-                            .fixedSize(horizontal: false, vertical: true) // Allows text to wrap
-                            .lineLimit(2) // Limits to two lines
-                    }.tag(1)
-                    
-                    VStack(spacing: 10) { // Adjust individual spacing if neede
-                        Image(systemName: "dumbbell.fill")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .scaleEffect(0.7)
-                            .frame(height: 50)
-                            .foregroundColor(currentColorScheme.light)
-                        Text("Competition")
-                            .bold()
-                            .font(.title)
-                            .foregroundColor(currentColorScheme.med)
-                            .fixedSize(horizontal: false, vertical: true) // Allows text to wrap
-                            .lineLimit(2) // Limits to two lines
-                    }.tag(2)
+    
+    let achievements: [Achievement] = [
+        Achievement(id: 0, image: "achievement (1)", title: "Plan", subtitle: "Craft your first personalized workout plan and set the foundation for your fitness journey."),
+        Achievement(id: 1, image: "achievement (2)", title: "Streak", subtitle: "Maintain a workout streak by hitting the gym or working out at home for several consecutive days."),
+        Achievement(id: 2, image: "achievement (3)", title: "PR", subtitle: "Achieve a new personal record in any of your favorite exercises or workouts.")
+    ]
+    
+    private func doubleHeightCardView(color: Color) -> some View {
+        VStack(spacing: 10) {
+            TabView {
+                // Display the first workout if available
+                if let firstWorkout = workouts.first {
+                    WorkoutCard(workoutName: firstWorkout.workoutName)
+                } else {
+                    Text("No workouts available")
                 }
-                .frame(height: 140)
-                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-                
-                // Page indicator
-                HStack {
-                    ForEach(0..<3, id: \.self) { index in
-                        Circle()
-                            .fill(index == currentTabIndex ? currentColorScheme.med : Color.gray.opacity(0.5))
-                            .frame(width: 8, height: 8)
-                    }
-                }
-                .padding(.vertical, 5) // Maintains padding around the dots
-                .frame(maxWidth: .infinity, alignment: .center)
+                AchievementCard()
+                LeaderboardCard()
             }
-            .padding()
-            .frame(minHeight: cardHeight * 2 + 20) // Adjusted for potential increase in content due to text wrapping
-            .background(Color(.systemBackground))
-            .cornerRadius(20)
+            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+            .frame(height: 150)
+            
+            // Page indicator
+            HStack(spacing: 7) {
+                ForEach(0..<min(achievements.count, 3), id: \.self) { index in
+                    Circle()
+                        .fill(index == currentTabIndex ? .black : Color.gray.opacity(0.3))
+                        .frame(width: 8, height: 8)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(color)
+        .cornerRadius(20)
+    }
+    
+    struct InfoCardView: View {
+        var symbolName: String
+        var title: String
+        var subtitle: String
+        var colorScheme: Color
+        
+        private let cardHeight: CGFloat = 65
+        private let horizontalSpacing: CGFloat = 6// Adjust as needed
+
+        var body: some View {
+            HStack() {
+                Image(systemName: symbolName)
+                    .foregroundColor(colorScheme)
+                    .font(Font.title)
+                    .frame(width: cardHeight, alignment: .center) // Set width to align image centrally
+
+                VStack(alignment: .leading) {
+                    Text(title)
+                        .font(.headline)
+                        .bold()
+                        .foregroundColor(colorScheme)
+                    
+                    Text(subtitle)
+                        .foregroundColor(colorScheme)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading) // Ensure VStack takes up remaining space
+            }
+            .frame(maxWidth: .infinity, minHeight: cardHeight)
+            .background(colorScheme.opacity(0))
+            .shadow(color: Color.black.opacity(0), radius: 3, x: 0, y: 2) // Adjust the shadow as needed
         }
     }
     
-    struct DataBarView: View {
-        var value: CGFloat  // This will represent the percentage of the bar that's filled
-        var maxValue: CGFloat = 100 // This represents the maximum possible value, for scaling purposes
-        var currentColorScheme: [Color]
-
-        var body: some View {
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Rectangle()
-                        .frame(width: geometry.size.width , height: 8)
-                        .opacity(0.3)
-                        .foregroundColor(currentColorScheme[1].opacity(0.3))
-                        .cornerRadius(7.5)
-                    
-                    Rectangle()
-                        .frame(width: (geometry.size.width * value / maxValue), height: 10)
-                        .foregroundColor(currentColorScheme[2])
-                        .cornerRadius(5.5)
-                }
-            }
-        }
-    }
-
     struct TripleHeightCardView: View {
         var currentColorScheme: [Color]
+        @Binding var memberMetrics: MemberMetric?
 
-        private let cardHeight: CGFloat = 92
-        private let titleSize: CGFloat = 32 // Updated size for member name text
-        
-        let heightData = (value: "5'11\"", change: "+2%")
-        let weightData = (value: "190lb", change: "-1%")
-
-        @State private var workoutFrequency: CGFloat = 3
-        @State private var workoutLength: CGFloat = 45
-        @State private var averageKcal: CGFloat = 500
+        private let cardHeight: CGFloat = 65 // Example height for each InfoCardView
+        private let verticalSpacing: CGFloat = 10 // Spacing between cards
+        private let additionalPadding: CGFloat = 20 // Additional padding for the whole view
 
         var body: some View {
-            VStack {
-                VStack(alignment: .leading, spacing: 8) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Workout Frequency")
-                            .font(.footnote)
-                            .fontWeight(.bold)
-                        DataBarView(value: workoutFrequency, maxValue: 7, currentColorScheme: currentColorScheme)
-                            .frame(height: 7)
-
-                        Text("Workout Length")
-                            .font(.footnote)
-                            .fontWeight(.bold)
-                        DataBarView(value: workoutLength, maxValue: 120, currentColorScheme: currentColorScheme)
-                            .frame(height: 7)
-
-                        Text("Average kcal")
-                            .font(.footnote)
-                            .fontWeight(.bold)
-                        DataBarView(value: averageKcal, maxValue: 1000, currentColorScheme: currentColorScheme)
-                            .frame(height: 7)
+            VStack(spacing: verticalSpacing) {
+                if let metrics = memberMetrics {
+                    // Display actual data
+                    InfoCardView(symbolName: "ruler", title: "\(metrics.heightCm) cm", subtitle: "Height", colorScheme: currentColorScheme[1])
+                    InfoCardView(symbolName: "scalemass", title: "\(metrics.weightKgString) kg", subtitle: "Weight", colorScheme: currentColorScheme[1].opacity(0.85))
+                    InfoCardView(symbolName: "person.fill", title: metrics.gender, subtitle: "Gender", colorScheme: currentColorScheme[1].opacity(0.7))
+                    InfoCardView(symbolName: "flame.fill", title: "\(metrics.workoutFrequency)", subtitle: "Workouts/Week", colorScheme: currentColorScheme[1].opacity(0.55))
+                } else {
+                    // Display placeholder cards with loading animations
+                    ForEach(0..<4, id: \.self) { _ in
+                        InfoCardLoadingView(colorScheme: currentColorScheme[1])
                     }
-                    VStack() {
-                                        // Height Card
-                                        VStack {
-                                            Text(heightData.value)
-                                                .font(.headline)
-                                                .bold()
-                                                .foregroundColor(currentColorScheme[1]) // Using .dark from your color scheme
-
-                                            Text(heightData.change)
-                                                .foregroundColor(currentColorScheme[1]) // Using .dark from your color scheme
-                                        }
-                                        .frame(maxWidth: .infinity, minHeight: 65)
-                                        .background(currentColorScheme[1].opacity(0.1))
-                                        .cornerRadius(15)
-
-                                        // Weight Card
-                                        VStack {
-                                            Text(weightData.value)
-                                                .font(.headline)
-                                                .bold()
-                                                .foregroundColor(currentColorScheme[1]) // Using .dark from your color scheme
-                                            Text(weightData.change)
-                                                .foregroundColor(currentColorScheme[1]) // Using .dark from your color scheme
-                                        }
-                                        .frame(maxWidth: .infinity, minHeight: 65)
-                                        .background(currentColorScheme[1].opacity(0.1))
-                                        .cornerRadius(15)
-                                    }
-                                    .frame(maxHeight: .infinity)
-                                }
-                                .padding()
-                                .frame(maxHeight: .infinity) // This will ensure the VStack takes the full height of its parent
+                }
             }
-            .frame(height: cardHeight * 3 + 55)
-            .frame(maxWidth: .infinity)
+            .padding()
+            .frame(maxWidth: .infinity, minHeight: totalHeight())
             .background(Color(.systemBackground))
             .cornerRadius(20)
             .overlay(
@@ -414,30 +311,59 @@ struct HomeView: View {
                             startPoint: .top,
                             endPoint: .bottom
                         ),
-                        lineWidth: 6.4
+                        lineWidth: 6
                     )
             )
         }
-    }
 
-
-    struct TitleSliderPair: View {
-        var title: String
-        @Binding var value: Double
-        var range: ClosedRange<Double>
-        
-        var body: some View {
-            VStack(alignment: .leading) {
-                Text(title)
-                    .font(.footnote)
-                    .fontWeight(.bold)
-                Slider(value: $value, in: range)
-            }
+        private func totalHeight() -> CGFloat {
+            let totalCardHeight = CGFloat(4) * cardHeight
+            let totalSpacing = CGFloat(3) * verticalSpacing
+            return totalCardHeight + totalSpacing + additionalPadding
         }
     }
 
+    struct InfoCardLoadingView: View {
+        var colorScheme: Color
+        private let cardHeight: CGFloat = 65
 
+        var body: some View {
+            HStack {
+                LoadingAnimationView()
+                    .frame(width: 30, height: 30)
+                    .foregroundColor(colorScheme)
+                
+                VStack {
+                    LoadingAnimationView()
+                        .frame(height: 20)
+                    LoadingAnimationView()
+                        .frame(height: 20)
+                }
+            }
+            .frame(maxWidth: .infinity, minHeight: cardHeight)
+            .background(colorScheme.opacity(0))
+        }
+    }
 
+    struct LoadingAnimationView: View {
+        @State private var isAnimating = false
+        private let cornerRadius: CGFloat = 10 // Adjust the corner radius as needed
+
+        var body: some View {
+            GeometryReader { geometry in
+                Rectangle()
+                    .fill(Color.gray.opacity(0.5))
+                    .cornerRadius(cornerRadius) // Apply rounded corners
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .scaleEffect(isAnimating ? 1.02 : 1.0)
+                    .opacity(isAnimating ? 0.6 : 0.3)
+                    .animation(Animation.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: isAnimating)
+                    .onAppear {
+                        isAnimating = true
+                    }
+            }
+        }
+    }
     private func quadHeightCardView(selectedCardIndex: Binding<Int>, color: Color, subtext: String = "", action: (() -> Void)? = nil, doubleHeight: Bool = false, mainTextFontSize: CGFloat = 20, subTextFontSize: CGFloat = 14, currentColorScheme: (dark: Color, med: Color, light: Color)) -> some View {
         VStack(spacing: 0) {
             Spacer(minLength: 0)
@@ -446,7 +372,7 @@ struct HomeView: View {
             cardSelector(selectedCardIndex: selectedCardIndex, currentColorScheme: currentColorScheme)
         }
     }
-
+    
     private func cardSelector(selectedCardIndex: Binding<Int>, currentColorScheme: (dark: Color, med: Color, light: Color)) -> some View {
         HStack {
             let cardTitles = ["Metrics", "Strength", "Friends"]
@@ -457,12 +383,12 @@ struct HomeView: View {
                     }
                 }) {
                     Text(cardTitles[index])
-                        .font(.system(size: 17))
-                        .padding(.vertical, 10)
+                        .font(.system(size: 18))
+                        .padding(.vertical, 12)
                         .padding(.horizontal, 15)
                         .background(selectedCardIndex.wrappedValue == index ? currentColorScheme.med.opacity(0.05) : Color.clear)
                         .foregroundColor(selectedCardIndex.wrappedValue == index ? currentColorScheme.med : .black.opacity(0.5))
-                        .cornerRadius(15)
+                        .cornerRadius(17)
                 }
             }
         }
@@ -475,11 +401,59 @@ struct HomeView: View {
             ("Endurance", 150),
             ("Flexibility", 100)
         ]
-
+        
         return CustomGraphCardView(titleNumberPairs: exampleData, currentColorScheme: currentColorScheme)
     }
+    
+    private func fetchWorkouts() {
+        if let memberIdData = KeychainManager.load(service: "YourAppService", account: "userId"),
+           let memberIdString = String(data: memberIdData, encoding: .utf8),
+           let memberId = Int(memberIdString),
+           let authKeyData = KeychainManager.load(service: "YourAppService", account: "authKey"),
+           let authKey = String(data: authKeyData, encoding: .utf8) {
 
+            print("Fetching workouts for: \(memberId)")
+            NetworkManager.fetchWorkoutsForMember(memberId: memberId, authKey: authKey) { result in
+                DispatchQueue.main.async {
+                    switch result {
+                    case .success(let fetchedWorkouts):
+                        print("Successfully fetched workouts: \(fetchedWorkouts)")
+                        self.workouts = fetchedWorkouts
+                    case .failure(let error):
+                        print("Error fetching workouts: \(error)")
+                    }
+                }
+            }
+        } else {
+            print("Unable to retrieve member ID and/or auth key from Keychain")
+        }
+    }
+    private func fetchMemberMetrics() {
+        // Retrieve the member ID and auth key from Keychain
+        if let memberIdData = KeychainManager.load(service: "YourAppService", account: "userId"),
+           let memberIdString = String(data: memberIdData, encoding: .utf8),
+           let memberId = Int(memberIdString),
+           let authKeyData = KeychainManager.load(service: "YourAppService", account: "authKey"),
+           let authKey = String(data: authKeyData, encoding: .utf8) {
 
+            print("Fetching member metrics for memberId: \(memberId)")
+            // Fetch member metrics using NetworkManager
+            NetworkManager.fetchMemberMetrics(memberId: memberId, authKey: authKey) { result in
+                DispatchQueue.main.async {
+                    switch result {
+                    case .success(let fetchedMetrics):
+                        print("Successfully fetched member metrics: \(fetchedMetrics)")
+                        self.memberMetrics = fetchedMetrics.first // Assuming you want the first record
+                    case .failure(let error):
+                        print("Error fetching member metrics: \(error)")
+                        // Handle the error accordingly
+                    }
+                }
+            }
+        } else {
+            print("Unable to retrieve member ID and/or auth key from Keychain")
+        }
+    }
     private func colorButton(option: ColorSchemeOption) -> some View {
         Button(action: {
             withAnimation {
@@ -523,32 +497,16 @@ struct HomeView: View {
                     }
             }
         }
-        .padding(8)
+        .padding(9)
         .onAppear {
+            fetchMemberMetrics()
+            fetchWorkouts()
             if userColorSchemeRawValue == option.rawValue {
-                // Set the initial size for the selected color
                 DispatchQueue.main.async {
                     optionSize[option] = CGSize(width: 35, height: 35)
                 }
             }
         }
-    }
-
-
-    private func remindersComingUp() -> Int {
-        let now = Date()
-        let calendar = Calendar.current
-        let fiveDaysLater = calendar.date(byAdding: .day, value: 5, to: now) ?? now
-        
-        var count = 0
-        for folder in viewModel.folders {
-            for reminder in folder.reminders {
-                if reminder.dueDate >= now && reminder.dueDate <= fiveDaysLater {
-                    count += 1
-                }
-            }
-        }
-        return count
     }
 }
 

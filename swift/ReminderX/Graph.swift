@@ -6,12 +6,10 @@ let exampleGraphData = GraphData(points: [45, 25, 18, 22, 30, 15, 68, 14, 23])
 struct GraphData {
     var points: [CGFloat] // Raw data points
     
-    // Calculate the horizontal padding to be added to the graph's frame
     var horizontalPadding: CGFloat {
         return (points.max() ?? 0 - (points.min() ?? 0)) * 0.1 // 10% padding
     }
 
-    // Normalize a single data point to fit within the graph's bounds
     func normalizedPoint(index: Int, frame: CGRect) -> CGPoint {
         let xPosition = (frame.width - horizontalPadding * 2) * CGFloat(index) / CGFloat(points.count - 1) + horizontalPadding
         let yPosition = (1 - (points[index] - minValue) / (maxValue - minValue)) * (frame.height - horizontalPadding * 2) + horizontalPadding
@@ -31,7 +29,6 @@ struct GraphData {
        var minValue: CGFloat {
            return (points.min() ?? 0) - padding
        }
-    // Find the indices of the peak and valley points for labeling
     var peakIndex: Int? { points.indices.max(by: { points[$0] < points[$1] }) }
     var valleyIndex: Int? { points.indices.min(by: { points[$0] < points[$1] }) }
 }
@@ -43,8 +40,8 @@ struct LabelView: View {
     
     var body: some View {
         Text(text)
-            .font(.system(size: 14)) // Increase the font size
-            .fontWeight(.medium) // Optional: Adjust the font weight
+            .font(.system(size: 14))
+            .fontWeight(.medium)
             .padding(5)
             .background(colorScheme.light)
             .foregroundColor(colorScheme.dark)
@@ -60,7 +57,6 @@ struct CustomGraphCardView: View {
 
     var body: some View {
         HStack {
-            // Left side (Titles and Numbers)
             VStack(alignment: .leading, spacing: 13) {
                 ForEach(titleNumberPairs, id: \.title) { pair in
                     VStack(alignment: .leading, spacing: 0) {
@@ -77,7 +73,7 @@ struct CustomGraphCardView: View {
                 }
             }
             .frame(width: UIScreen.main.bounds.width * 0.17)
-            .padding(.vertical) // Adds vertical spacing
+            .padding(.vertical)
 
             // Right side (Graph)
             VStack {

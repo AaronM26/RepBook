@@ -38,4 +38,11 @@ class KeychainManager {
 
             return SecItemDelete(query as CFDictionary)
     }
+    static func loadAuthKey() -> String? {
+            guard let authKeyData = load(service: "YourAppService", account: "authKey"),
+                  let authKey = String(data: authKeyData, encoding: .utf8) else {
+                return nil
+            }
+            return authKey
+        }
 }

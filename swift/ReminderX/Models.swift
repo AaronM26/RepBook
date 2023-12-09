@@ -2,23 +2,113 @@ import Foundation
 import SwiftUI
 import Combine
 
+enum NetworkError: Error {
+    case invalidURL
+    case serverError
+    case unexpectedResponse
+}
+
+struct MemberMetric: Codable {
+    let memberId: Int
+    let heightCm: Int
+    let weightKgString: String
+    let gender: String
+    let workoutFrequency: Int
+
+    enum CodingKeys: String, CodingKey {
+        case memberId = "member_id"
+        case heightCm = "height_cm"
+        case weightKgString = "weight_kg"
+        case gender
+        case workoutFrequency = "workout_frequency"
+    }
+}
+
+
+struct Achievement: Identifiable {
+    let id: Int
+    let image: String
+    let title: String
+    let subtitle: String
+}
+
+struct UserInfo: Decodable {
+    var firstName: String
+    var lastName: String
+    var dateOfBirth: String
+    var username: String
+    var email: String
+
+    enum CodingKeys: String, CodingKey {
+        case firstName = "first_name"
+        case lastName = "last_name"
+        case dateOfBirth = "date_of_birth"
+        case username
+        case email
+    }
+}
+
+struct Workout: Codable {
+    let workoutId: Int
+    let memberId: Int
+    let workoutName: String
+    let exerciseIds: [Int]
+
+    enum CodingKeys: String, CodingKey {
+        case workoutId = "workout_id"
+        case memberId = "member_id"
+        case workoutName = "workout_name"
+        case exerciseIds = "exercise_ids"
+    }
+}
+
+
+struct Exercise: Identifiable, Decodable {
+    let id: Int
+    let name: String
+    let muscleGroup: String
+    let difficulty: String
+    let duration: Int
+    let workoutType: String
+    let description: String
+    let equipmentNeeded: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case muscleGroup = "muscle_group"
+        case difficulty
+        case duration
+        case description
+        case equipmentNeeded = "equipment_needed"
+        case workoutType = "workout_type"
+    }
+}
+
+enum WeightUnit: String, CaseIterable {
+    case lbs = "lbs"
+    case kg = "kg"
+}
+
+struct SignupResponse: Decodable {
+    let memberId: Int
+    let authKey: String
+}
+
+struct LoginResponse: Decodable {
+    let memberId: Int
+    let authKey: String
+
+    enum CodingKeys: String, CodingKey {
+        case memberId = "member_id"
+        case authKey = "auth_key"
+    }
+}
+
 class AppViewModel: ObservableObject {
     @Published var isAuthenticated: Bool = false
 }
 
-// Define the Workout data structure
-struct Workout: Identifiable {
-    let id = UUID()
-    let title: String
-    let subtitle: String
-    let imageName: String
-    let requiresEquipment: Bool
-    let duration: Int // Duration in minutes
-    let caloriesBurned: Int
-    // Add more properties as needed
-}
-
-// Define TagView for Workout Metadata
 struct TagView: View {
     var text: String
     var color: Color
@@ -34,33 +124,6 @@ struct TagView: View {
                     .stroke(color, lineWidth: 1)
             )
     }
-}
-
-class UserWorkouts: ObservableObject {
-    @Published var workouts: [Workout] = []
-    
-    // Add functions to add, remove, or modify workouts
-}
-
-struct UserInfo: Decodable {
-    var firstName: String
-    var lastName: String
-    var dateOfBirth: String
-    var memberId: Int
-    var heightCm: Int
-    var weightKg: Int
-    var benchMaxKg: Int
-    var squatMaxKg: Int
-    var bmi: Double
-    var username: String
-    var email: String // Added email property
-}
-
-struct Folder: Identifiable, Codable {
-    var id = UUID()
-    var name: String
-    var color: CodableColor
-    var reminders: [Reminder]
 }
 
 struct CodableColor: Codable {

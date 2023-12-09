@@ -7,64 +7,17 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "8FB3EF78-568B-4494-8203-C18506D88667"
+            uuid = "AB5EFAFB-26EC-425F-982D-A9AE053B41C5"
             shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "ReminderX/VideoEditorHomeView.swift"
+            filePath = "ReminderX/VisualComponents.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "49"
-            endingLineNumber = "49"
+            startingLineNumber = "137"
+            endingLineNumber = "137"
             landmarkName = "body"
             landmarkType = "24">
-            <Locations>
-               <Location
-                  uuid = "8FB3EF78-568B-4494-8203-C18506D88667 - e7cc0ba3e3222136"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "ReminderX.WorkoutView.body.getter : some"
-                  moduleName = "ReminderX"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/aaronmclean/Desktop/RepBook/swift/ReminderX/VideoEditorHomeView.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "49"
-                  endingLineNumber = "49"
-                  offsetFromSymbolStart = "1280">
-               </Location>
-               <Location
-                  uuid = "8FB3EF78-568B-4494-8203-C18506D88667 - a43bdcaed5485641"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "closure #2 () -&gt; () in ReminderX.WorkoutView.body.getter : some"
-                  moduleName = "ReminderX"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/aaronmclean/Desktop/RepBook/swift/ReminderX/VideoEditorHomeView.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "49"
-                  endingLineNumber = "49"
-                  offsetFromSymbolStart = "140">
-               </Location>
-               <Location
-                  uuid = "8FB3EF78-568B-4494-8203-C18506D88667 - e7cc0ba3e3222136"
-                  shouldBeEnabled = "Yes"
-                  ignoreCount = "0"
-                  continueAfterRunningActions = "No"
-                  symbolName = "ReminderX.WorkoutView.body.getter : some"
-                  moduleName = "ReminderX"
-                  usesParentBreakpointCondition = "Yes"
-                  urlString = "file:///Users/aaronmclean/Desktop/RepBook/swift/ReminderX/VideoEditorHomeView.swift"
-                  startingColumnNumber = "9223372036854775807"
-                  endingColumnNumber = "9223372036854775807"
-                  startingLineNumber = "49"
-                  endingLineNumber = "49"
-                  offsetFromSymbolStart = "1136">
-               </Location>
-            </Locations>
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

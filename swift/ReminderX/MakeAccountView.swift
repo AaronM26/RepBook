@@ -6,34 +6,123 @@ import Network
 import Foundation
 import Security
 
+struct MemberMetricsView: View {
+    @Binding var isAuthenticated: Bool
+    
+    // Passed in account information
+    var firstName: String
+    var lastName: String
+    var dateOfBirth: Date
+    var email: String
+    var password: String
+    var username: String
+    
+    // Member Metrics State Variables
+    @State private var heightCm: Int = 0
+    @State private var weightKg: Int = 0
+    @State private var gender: String = ""
+    @State private var workoutFrequency: Int = 0
+    
+    var body: some View {
+        VStack {
+            Text("Enter Your Fitness Metrics")
+                .font(.title)
+                .padding()
+            
+            formFieldInt(title: "Height in cm", value: $heightCm)
+            formFieldInt(title: "Weight in kg", value: $weightKg)
+            formFieldText(title: "Gender", text: $gender)
+            formFieldInt(title: "Workout Frequency per Week", value: $workoutFrequency)
+            
+            Button("Complete Sign Up") {
+                uploadMemberMetrics()
+            }
+            .padding()
+            .background(Color.black)
+            .foregroundColor(.white)
+            .clipShape(RoundedRectangle(cornerRadius: 15))
+            .padding(.horizontal)
+        }
+    }
+    private func formFieldInt(title: String, value: Binding<Int>) -> some View {
+        VStack(alignment: .leading) {
+            Text(title)
+                .font(.headline)
+                .padding(.top)
+            TextField("", value: value, format: .number)
+                .keyboardType(.numberPad)
+                .padding()
+                .background(Color.white.opacity(0.8))
+                .clipShape(RoundedRectangle(cornerRadius: 15))
+        }
+        .padding(.horizontal)
+    }
+
+    private func formFieldText(title: String, text: Binding<String>) -> some View {
+        VStack(alignment: .leading) {
+            Text(title)
+                .font(.headline)
+                .padding(.top)
+            TextField(title, text: text)
+                .padding()
+                .background(Color.white.opacity(0.8))
+                .clipShape(RoundedRectangle(cornerRadius: 15))
+        }
+        .padding(.horizontal)
+    }
+    private func uploadMemberMetrics() {
+        // Initialize the DateFormatter
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+
+        // Format the dateOfBirth to a string
+        let dobString = dateFormatter.string(from: dateOfBirth)
+            let accountAndMetricsData: [String: Any] = [
+                "firstName": firstName,
+                "lastName": lastName,
+                "dateOfBirth": dobString, // Use the formatted string here
+                "email": email,
+                "password": password,
+                "username": username,
+                "heightCm": heightCm,
+                "weightKg": weightKg,
+                "gender": gender,
+                "workoutFrequency": workoutFrequency
+            ]
+
+            NetworkManager.signUpUser(with: accountAndMetricsData) { result in
+                switch result {
+                case .success:
+                    print("Sign up successful")
+                    DispatchQueue.main.async {
+                        self.isAuthenticated = true
+                    }
+                case .failure(let error):
+                    print("Error signing up: \(error)")
+                    // Handle error...
+                }
+            }
+        }
+    }
+
+
 struct MakeAccountView: View {
     @Binding var isAuthenticated: Bool
-    @State private var isAccountInfoCompleted = false
-    @State private var isEmailValid: Bool = true
-    @State private var passwordWarning: String = ""
-    @State private var username: String = ""
-    @State private var isUsernameAvailable: Bool? = nil
-    @State private var debounceTimer: Timer?
-    
-    // Account Info
-    @State private var firstName: String = ""
-    @State private var lastName: String = ""
-    @State private var dateOfBirth = Date()
-    @State private var email: String = ""
-    @State private var password: String = ""
-    
-    // Health Metrics
-    @State private var height: String = ""
-    @State private var weight: String = ""
-    @State private var gender: String = ""
-    @State private var workoutFrequency: String = ""
-    @State private var appUsagePurpose: String = ""
-    @State private var workoutType: String = ""
-    
-    let genders = ["Male", "Female", "Other"]
-    let workoutFrequencies = ["Daily", "Weekly", "Monthly"]
-    let workoutTypes = ["Home", "Gym"]
-    let appPurposes = ["Weight Loss", "Build Muscle", "Calisthenics"]
+       @State private var isAccountInfoCompleted = false
+       @State private var isMetricsInfoCompleted = false  // State to track if metrics info is completed
+       @State private var isEmailValid: Bool = true
+       @State private var passwordWarning: String = ""
+       @State private var username: String = ""
+       @State private var isUsernameAvailable: Bool? = nil
+       @State private var debounceTimer: Timer?
+       
+       
+       // Account Info
+       @State private var firstName: String = ""
+       @State private var lastName: String = ""
+       @State private var dateOfBirth = Date()
+       @State private var email: String = ""
+       @State private var password: String = ""
     
     var body: some View {
         VStack {
@@ -43,7 +132,19 @@ struct MakeAccountView: View {
                 .frame(width: 300)
                 .padding(20)
             
-            accountInfoForm
+            if !isAccountInfoCompleted {
+                          accountInfoForm
+                      } else if !isMetricsInfoCompleted {
+                          MemberMetricsView(
+                              isAuthenticated: $isAuthenticated,
+                              firstName: firstName,
+                              lastName: lastName,
+                              dateOfBirth: dateOfBirth,
+                              email: email,
+                              password: password,
+                              username: username
+                          )
+                      }
             
             Spacer()
         }
@@ -115,7 +216,6 @@ struct MakeAccountView: View {
             if allFieldsValid() {
                 Button("Sign Up") {
                     isAccountInfoCompleted = true
-                    signUpUser()
                 }
                 .padding()
                 .background(Color.black)
@@ -170,7 +270,7 @@ struct MakeAccountView: View {
         }
 
         // Call API endpoint
-        if let url = URL(string: "http://localhost:3000/checkUsername/\(username)") {
+        if let url = URL(string: "http://192.168.0.146:3000/checkUsername/\(username)") {
             URLSession.shared.dataTask(with: url) { data, response, error in
                 if let data = data {
                     if let response = try? JSONDecoder().decode([String: Bool].self, from: data) {
@@ -186,59 +286,4 @@ struct MakeAccountView: View {
     private func allFieldsValid() -> Bool {
         return !firstName.isEmpty && !lastName.isEmpty && isEmailValid && !password.isEmpty
     }
-    func signUpUser() {
-        // Initialize the DateFormatter
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-
-        // Prepare the URL
-        guard let url = URL(string: "http://localhost:3000/signup") else { return }
-        
-        // Format the dateOfBirth to a string
-        let dobString = dateFormatter.string(from: dateOfBirth)
-        
-        let userData: [String: Any] = [
-                "firstName": firstName,
-                "lastName": lastName,
-                "dateOfBirth": dobString,
-                "email": email,
-                "password": password,
-                "username": username  // Add username here
-            ]
-        
-        // Create a URLRequest
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // Encode the user data to JSON
-        do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: userData, options: [])
-        } catch {
-            print("Failed to encode user data")
-            return
-        }
-        
-        // Perform the request
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                print("Error occurred: \(error.localizedDescription)")
-                return
-            }
-            
-            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 201,
-               let data = data,
-               let result = try? JSONDecoder().decode([String: Int].self, from: data),
-               let userId = result["member_id"] {
-                
-                // Save userId securely in Keychain and authenticate the user
-                if let userIdData = "\(userId)".data(using: .utf8) {
-                    KeychainManager.save(userIdData, service: "YourAppService", account: "userId")
-                    DispatchQueue.main.async {
-                        isAuthenticated = true
-                    }
-                }
-            }
-        }.resume()
     }
-}

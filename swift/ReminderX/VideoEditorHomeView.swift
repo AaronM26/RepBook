@@ -5,8 +5,9 @@ import UIKit
 struct WorkoutView: View {
     @State private var showActionSheet = false
     @State private var gradientRotation: Double = 0
-    @State private var workouts: [Workout] = [] // Example workouts data
+    @State private var showingWorkoutBuilder = false // Added state for showing WorkoutBuilderView
     let gradientColors = [ColorSchemeManager.shared.currentColorScheme.med, ColorSchemeManager.shared.currentColorScheme.light]
+    @State private var workouts: [Workout] = [] // Array to hold workouts
 
     var body: some View {
         ZStack {
@@ -31,29 +32,37 @@ struct WorkoutView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 76)
 
-            // Content
             VStack {
                 WorkoutPlanCardView()
                 header
-                ScrollView {
-                    ForEach(workouts) { workout in
-                        WorkoutCard(workout: workout)
-                    }
-                }
+                workoutCards
                 Spacer()
-            }
-            .padding()
-            .clipShape(RoundedRectangle(cornerRadius: 30))
-        }
-        .navigationBarTitle("", displayMode: .inline)
-        .onAppear {
+            }                       .padding()
+                       .clipShape(RoundedRectangle(cornerRadius: 30))
+                       .sheet(isPresented: $showingWorkoutBuilder) {
+                           WorkoutBuilderView(isPresented: self.$showingWorkoutBuilder)
+                       }
+                   }
+                   .navigationBarTitle("", displayMode: .inline)
+                   .onAppear {
+                       fetchWorkouts()
             withAnimation(Animation.linear(duration: 8).repeatForever(autoreverses: false)) {
                 gradientRotation = 360
             }
-            loadWorkouts() // Load workouts data
+        }
+    }
+    
+    private var workoutCards: some View {
+        ScrollView {
+            VStack {
+                ForEach(workouts, id: \.workoutId) { workout in
+                    WorkoutCardView(workout: workout)
+                }
+            }
         }
     }
 
+    
     private var header: some View {
         HStack {
             Text("Workouts")
@@ -63,19 +72,18 @@ struct WorkoutView: View {
 
             Spacer()
 
-            // Plus Button - Navigate to WorkoutBuilder View
             Button(action: {
-            }) {
-                Image(systemName: "plus")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 16, height: 16)
-                    .padding()
-                    .foregroundColor(ColorSchemeManager.shared.currentColorScheme.med)
-                    .background(ColorSchemeManager.shared.currentColorScheme.med.opacity(0.2))
-                    .cornerRadius(15)
-            }
-
+                            self.showingWorkoutBuilder = true
+                        }) {
+                            Image(systemName: "plus")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 16, height: 16)
+                                .padding(13)
+                                .foregroundColor(ColorSchemeManager.shared.currentColorScheme.med)
+                                .background(.gray.opacity(0.05))
+                                .cornerRadius(15)
+                        }
             // Pencil Button - Implement action for editing workout plan
             Button(action: {
                 // Action for editing workout plan
@@ -84,11 +92,14 @@ struct WorkoutView: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: 16, height: 16)
-                    .padding()
+                    .padding(13)
                     .foregroundColor(ColorSchemeManager.shared.currentColorScheme.med)
-                    .background(ColorSchemeManager.shared.currentColorScheme.med.opacity(0.2))
+                    .background(.gray.opacity(0.05))
                     .cornerRadius(15)
             }
+            .sheet(isPresented: $showingWorkoutBuilder) {
+                WorkoutBuilderView(isPresented: self.$showingWorkoutBuilder)
+                    }
         }
         .padding([.top, .horizontal])
     }
@@ -105,64 +116,33 @@ struct WorkoutView: View {
         .clipShape(Circle())
         .padding(EdgeInsets(top: 10, leading: 5, bottom: 5, trailing: 5))
     }
+    private func fetchWorkouts() {
+        // Retrieve the member ID and auth key from Keychain
+        if let memberIdData = KeychainManager.load(service: "YourAppService", account: "userId"),
+           let memberIdString = String(data: memberIdData, encoding: .utf8),
+           let memberId = Int(memberIdString),
+           let authKeyData = KeychainManager.load(service: "YourAppService", account: "authKey"),
+           let authKey = String(data: authKeyData, encoding: .utf8) {
 
-    private func loadWorkouts() {
-        // Load workouts from local data or network request
-        // Example:
-        workouts = [
-            Workout(title: "Morning Yoga", subtitle: "Stretch and Tone", imageName: "yoga", requiresEquipment: false, duration: 30, caloriesBurned: 200),
-                        Workout(title: "HIIT", subtitle: "High-Intensity Interval Training", imageName: "hiit", requiresEquipment: true, duration: 20, caloriesBurned: 300)
-        ]
-    }
-}
-
-// Define the WorkoutBuilder view
-struct WorkoutBuilder: View {
-    @Binding var isPresented: Bool
-    @State private var numberOfWorkoutsPerWeek = 3
-
-    var body: some View {
-        VStack(spacing: 20) {
-            Text("Create Your Workout Plan")
-                .bold()
-                .padding()
-
-            Picker("Number of Workouts Per Week", selection: $numberOfWorkoutsPerWeek) {
-                ForEach(1..<8) {
-                    Text("\($0) workouts").tag($0)
+            print("Fetching workouts for memberId: \(memberId)")
+            // Fetch workouts using NetworkManager
+            NetworkManager.fetchWorkoutsForMember(memberId: memberId, authKey: authKey) { result in
+                DispatchQueue.main.async {
+                    switch result {
+                    case .success(let fetchedWorkouts):
+                        print("Successfully fetched workouts: \(fetchedWorkouts)")
+                        self.workouts = fetchedWorkouts
+                    case .failure(let error):
+                        print("Error fetching workouts: \(error)")
+                    }
                 }
             }
-            .pickerStyle(WheelPickerStyle())
-            
-            // Based on the selection, offer a list of workout splits
-            // TODO: Implement workout split logic
-
-            // Allow the user to select specific workouts for each type of workout
-            // TODO: Implement workout selection logic
-            
-            Button("Save Workout Plan") {
-                // TODO: Save the workout plan logic
-            }
-            .padding()
-            .background(Color.blue)
-            .foregroundColor(.white)
-            .cornerRadius(10)
-
-            Button("Cancel") {
-                self.isPresented = false
-            }
-            .padding()
-            .background(Color.red)
-            .foregroundColor(.white)
-            .cornerRadius(10)
+        } else {
+            print("Unable to retrieve member ID and/or auth key from Keychain")
         }
-        .padding()
-        .background(Color.white)
-        .cornerRadius(20)
-        .shadow(radius: 10)
-        .padding(40) // Give some padding from the screen edges
     }
 }
+
 // Preview for SwiftUI Canvas
 struct WorkoutView_Previews: PreviewProvider {
     static var previews: some View {
