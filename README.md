@@ -71,25 +71,20 @@ MODELS:
     /ER_model.png
     /DB_Schema.png
     
+
 NORMAL FORMS
 
     1NF (First Normal Form)
-        Each table has a primary key.
-        All attributes contain atomic (indivisible) values.
-
-        Primary Keys: Each table in your database has a primary key, as evidenced by the PRIMARY KEY constraint in their definitions.
-        Atomic Values: All attributes in your tables appear to store atomic values. There are no repeating groups or arrays, and each column holds a single piece of data of a consistent type.
+    Primary Keys: Each table in the database has a defined primary key. For instance, the members table uses member_id as the primary key, ensuring each record is uniquely identifiable.
+    Atomic Values: Every attribute in each table holds atomic, indivisible values. Take the exercises table as an example; attributes like name, muscle_group, and difficulty each store a single, indivisible piece of data, adhering to the 1NF requirement.
 
     2NF (Second Normal Form)
-        All non-key attributes are fully functionally dependent on the primary key.
-
-        Full Functional Dependency: In each table, the non-key attributes are fully functionally dependent on the primary key. For example, in the members table, attributes like first_name, last_name, email, etc., are all dependent on member_id and not on any subset of it.
+    Full Functional Dependency: In each table, the non-key attributes are fully functionally dependent on the primary key, and not on any subset of the primary key. In the gym_memberships table, the attributes gym and address depend entirely on member_id for their context and meaning, satisfying the 2NF condition.
 
     3NF (Third Normal Form)
-        No transitive dependency exists between non-key attributes and the primary key.
-
-        There are no attributes that are transitively dependent on the primary key through another non-key attribute. Each attribute is directly dependent on the primary key. For example, in the nutrition_plans table, daily_calories, protein_target, etc., are directly dependent on member_id and not through another non-key attribute.
-        Thus, based on the structure and definitions of your tables, your database appears to be in compliance with the 1NF, 2NF, and 3NF normalization forms. Each table maintains a primary key, attributes are atomic, non-key attributes are fully functionally dependent on their respective primary keys, and there are no transitive dependencies between non-key attributes and primary keys.
+    No Transitive Dependency: Tables show no signs of transitive dependencies where non-key attributes depend on other non-key attributes. For example, in the nutrition_plans table, the attributes like daily_calories, protein_target, etc., are directly dependent on member_id and not on any other non-key attribute, confirming adherence to 3NF.
+    
+    
 
 10 SQL COMMANDS FROM NODE ENDPOINT
     Account Data Insertion Query:
@@ -132,15 +127,3 @@ NORMAL FORMS
     Insert Gym Membership Query:
         INSERT INTO gym_memberships (member_id, gym, address, membership_type)
         VALUES ($1, $2, $3, $4);
-
-    Fetch Workouts Query:
-        SELECT * FROM workouts
-        WHERE member_id = $1;
-
-    Fetch Metrics Query:
-        SELECT * FROM members_metrics
-        WHERE member_id = $1;
-
-    Insert New Workout Query:
-        INSERT INTO workouts (member_id, workout_name, exercise_ids)
-        VALUES ($1, $2, $3);
