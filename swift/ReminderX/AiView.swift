@@ -141,7 +141,6 @@ struct AiView: View {
             let chat = """
                 Act as FitnessAI, an intelligent fitness assistant specializing in providing workout advice, exercise suggestions, and fitness planning. You're equipped with knowledge about various exercises, workout routines, fitness tips, and basic nutrition advice. Respond to user queries with helpful, accurate, and concise fitness guidance. Please do not create or imagine information outside of these topics. Use natural language and ensure proper capitalization. Keep responses relevant to the user's query and fitness goals. Current date: \(currentTime). User's prompt: \(prompt).
                 """
-
             Task {
                 do {
                     let stream = try await api.sendMessageStream(text: chat)

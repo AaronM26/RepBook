@@ -125,7 +125,7 @@ struct HomeView: View {
                                 }
                             }
                         }
-                        .padding(.horizontal)
+                        .padding()
                         wrappedCardView {
                             NavigationLink(destination: WorkoutView()) {
                                 quadHeightCardView(selectedCardIndex: $selectedCardIndex, color: .blue, currentColorScheme: currentColorScheme)

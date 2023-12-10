@@ -7,37 +7,6 @@ const app = express();
 const port = 3000;
 require('dotenv').config({ path: './.gitignore' }); // Use the correct relative path
 
-/*
-    Middleware
-*/
-
-async function authenticate(req, res, next) {
-    try {
-        const { memberId } = req.params;
-        const authKey = req.header('Auth-Key'); // Assuming the authKey is sent in the header
-
-        console.log(`Authenticating memberId: ${memberId} with authKey: ${authKey}`);
-
-        const query = 'SELECT auth_key FROM members WHERE member_id = $1';
-        const result = await pool.query(query, [memberId]);
-
-        if (result.rows.length > 0) {
-            console.log(`Stored authKey for memberId ${memberId}: ${result.rows[0].auth_key}`);
-            if (result.rows[0].auth_key === authKey) {
-                next(); // authKey is valid, proceed to the endpoint
-            } else {
-                res.status(401).send('Unauthorized: Invalid authKey');
-            }
-        } else {
-            res.status(401).send('Unauthorized: memberId not found');
-        }
-    } catch (error) {
-        console.error('Authentication error', error);
-        res.status(500).send('Internal Server Error');
-    }
-}
-
-
 app.use(bodyParser.json());
 
 app.use((req, res, next) => {
@@ -53,12 +22,24 @@ const pool = new Pool({
     port: process.env.DB_PORT || 4126,
 });
 
-/*
-    Non Auth Approved Endpoints
-    /signup
-    /login
-    /checkusername
-*/
+/**
+ * @api {post} /signup User Signup
+ * @apiDescription Register a new user with account and metrics data.
+ * @apiBody {String} firstName User's first name.
+ * @apiBody {String} lastName User's last name.
+ * @apiBody {Date} dateOfBirth User's date of birth.
+ * @apiBody {String} email User's email address.
+ * @apiBody {String} password User's password.
+ * @apiBody {String} username User's chosen username.
+ * @apiBody {Number} heightCm User's height in centimeters.
+ * @apiBody {Number} weightKg User's weight in kilograms.
+ * @apiBody {String} gender User's gender.
+ * @apiBody {String} workoutFrequency User's workout frequency.
+ * @apiResponse {JSON} member_id Newly created member's ID.
+ * @apiResponse {String} auth_key Authentication key for the user.
+ * @apiError 400 Missing required fields.
+ * @apiError 500 Internal Server Error.
+ */
 
 app.post('/signup', async (req, res) => {
     try {
@@ -111,6 +92,18 @@ app.post('/signup', async (req, res) => {
     }
 });
 
+/**
+ * @api {post} /login User Login
+ * @apiDescription Authenticate a user and provide an auth key.
+ * @apiBody {String} [email] User's email address (optional, if username is provided).
+ * @apiBody {String} [username] User's username (optional, if email is provided).
+ * @apiBody {String} password User's password.
+ * @apiResponse {JSON} member_id Authenticated member's ID.
+ * @apiResponse {String} auth_key Authentication key for the user.
+ * @apiError 400 Email or username is required.
+ * @apiError 401 Invalid credentials.
+ * @apiError 500 Internal Server Error.
+ */
 
 app.post('/login', async (req, res) => {
     try {
@@ -147,8 +140,14 @@ app.post('/login', async (req, res) => {
     }
 });
 
+/**
+ * @api {get} /checkUsername/:username Check Username Availability
+ * @apiDescription Check if a username is available for registration.
+ * @apiParam {String} username Username to check for availability.
+ * @apiResponse {JSON} isAvailable Boolean indicating if the username is available.
+ * @apiError 500 Internal Server Error.
+ */
 
-// Check if username is available
 app.get('/checkUsername/:username', async (req, res) => {
     try {
         const { username } = req.params;
@@ -162,13 +161,15 @@ app.get('/checkUsername/:username', async (req, res) => {
     }
 });
 
-/*
-    Auth Only Endpoints
-    /updateUserInfo
-    /userDataAndMetrics
-    /setGymMembership
-    /workouts
-*/
+/**
+ * @api {post} /exercises Add Exercises to Workout
+ * @apiDescription Record a new workout for a user with specified exercises.
+ * @apiBody {Number} memberId ID of the member.
+ * @apiBody {Array} exerciseIds Array of exercise IDs to be included in the workout.
+ * @apiResponse {JSON} workoutId ID of the newly created workout.
+ * @apiError 400 Invalid input data.
+ * @apiError 500 Internal Server Error.
+ */
 
 
 app.post('/exercises', authenticate, async (req, res) => {
@@ -196,6 +197,21 @@ app.post('/exercises', authenticate, async (req, res) => {
     }
 });
 
+/**
+ * @api {post} /updateUserInfo/:memberId Update User Information
+ * @apiDescription Update personal information for a specific user.
+ * @apiParam {Number} memberId ID of the member whose information is to be updated.
+ * @apiBody {String} firstName User's first name.
+ * @apiBody {String} lastName User's last name.
+ * @apiBody {Date} dateOfBirth User's date of birth.
+ * @apiBody {String} email User's email address.
+ * @apiBody {String} username User's username.
+ * @apiResponse {String} message Success message.
+ * @apiError 400 Missing required fields.
+ * @apiError 500 Internal Server Error.
+ */
+
+
 app.post('/updateUserInfo/:memberId', authenticate, async (req, res) => {
     try {
         const { memberId } = req.params;
@@ -222,6 +238,17 @@ app.post('/updateUserInfo/:memberId', authenticate, async (req, res) => {
         res.status(500).send(err.message);
     }
 });
+
+/**
+ * @api {get} /userDataAndMetrics/:memberId Fetch User Data and Metrics
+ * @apiDescription Retrieve user data and physical metrics for a specific member.
+ * @apiParam {Number} memberId ID of the member.
+ * @apiResponse {JSON} userData User's personal and metrics data.
+ * @apiError 400 Invalid memberId.
+ * @apiError 404 Member not found.
+ * @apiError 500 Internal Server Error.
+ */
+
 
 app.get('/userDataAndMetrics/:memberId', authenticate, async (req, res) => {
     try {
@@ -251,6 +278,18 @@ app.get('/userDataAndMetrics/:memberId', authenticate, async (req, res) => {
       res.status(500).send('Internal Server Error');
     }
   });
+
+/**
+ * @api {post} /setGymMembership Set Gym Membership
+ * @apiDescription Update or set gym membership details for a user.
+ * @apiBody {Number} memberId ID of the member.
+ * @apiBody {String} gym Name of the gym.
+ * @apiBody {String} address Address of the gym.
+ * @apiBody {String} membershipType Type of gym membership.
+ * @apiResponse {String} message Success message.
+ * @apiError 500 Internal Server Error.
+ */
+
 
 // Endpoint to set gym membership information for a user
 app.post('/setGymMembership', authenticate, async (req, res) => {
@@ -287,7 +326,15 @@ app.post('/setGymMembership', authenticate, async (req, res) => {
     }
 });
 
-// Endpoint to get all workouts for a specific member
+/**
+ * @api {get} /workouts/:memberId Get Workouts
+ * @apiDescription Retrieve all workouts for a specific member.
+ * @apiParam {Number} memberId ID of the member.
+ * @apiResponse {Array} workouts Array of workout records.
+ * @apiError 400 Member ID required.
+ * @apiError 500 Internal Server Error.
+ */
+
 app.get('/workouts/:memberId', authenticate, async (req, res) => {
     try {
         const { memberId } = req.params;
@@ -318,6 +365,15 @@ app.get('/workouts/:memberId', authenticate, async (req, res) => {
     }
 });
 
+/**
+ * @api {get} /membersMetrics/:memberId Get Member's Metrics
+ * @apiDescription Retrieve physical metrics data for a specific member.
+ * @apiParam {Number} memberId ID of the member.
+ * @apiResponse {Array} metrics Array of metric records.
+ * @apiError 400 Member ID required.
+ * @apiError 500 Internal Server Error.
+ */
+
 app.get('/membersMetrics/:memberId', authenticate, async (req, res) => {
     try {
         const { memberId } = req.params;
@@ -346,6 +402,17 @@ app.get('/membersMetrics/:memberId', authenticate, async (req, res) => {
         res.status(500).send(err.message);
     }
 });
+
+/**
+ * @api {post} /createWorkout/:memberId Create Workout
+ * @apiDescription Create a new workout record for a member.
+ * @apiParam {Number} memberId ID of the member.
+ * @apiBody {String} workoutName Name of the workout.
+ * @apiBody {Array} exerciseIds Array of exercise IDs included in the workout.
+ * @apiResponse {String} message Success message.
+ * @apiError 400 Missing required fields.
+ * @apiError 500 Internal Server Error.
+ */
 
 app.post('/createWorkout/:memberId', authenticate, async (req, res) => {
     try {
@@ -381,6 +448,14 @@ app.post('/createWorkout/:memberId', authenticate, async (req, res) => {
     }
 });
 
+/**
+ * @api {get} /exercises Fetch Exercises
+ * @apiDescription Retrieve a list of all exercises.
+ * @apiResponse {Array} exercises Array of exercise records.
+ * @apiError 404 No exercises found.
+ * @apiError 500 Internal Server Error.
+ */
+
 app.get('/exercises', async (req, res) => {
     try {
         console.log("Fetching exercises...");
@@ -400,6 +475,32 @@ app.get('/exercises', async (req, res) => {
         res.status(500).send(`Internal Server Error: ${err.message}`);
     }
 });
+
+async function authenticate(req, res, next) {
+    try {
+        const { memberId } = req.params;
+        const authKey = req.header('Auth-Key'); // Assuming the authKey is sent in the header
+
+        console.log(`Authenticating memberId: ${memberId} with authKey: ${authKey}`);
+
+        const query = 'SELECT auth_key FROM members WHERE member_id = $1';
+        const result = await pool.query(query, [memberId]);
+
+        if (result.rows.length > 0) {
+            console.log(`Stored authKey for memberId ${memberId}: ${result.rows[0].auth_key}`);
+            if (result.rows[0].auth_key === authKey) {
+                next(); // authKey is valid, proceed to the endpoint
+            } else {
+                res.status(401).send('Unauthorized: Invalid authKey');
+            }
+        } else {
+            res.status(401).send('Unauthorized: memberId not found');
+        }
+    } catch (error) {
+        console.error('Authentication error', error);
+        res.status(500).send('Internal Server Error');
+    }
+}
 
 app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
