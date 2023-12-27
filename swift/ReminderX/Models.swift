@@ -62,28 +62,20 @@ struct Workout: Codable {
     }
 }
 
-
 struct Exercise: Identifiable, Decodable {
     let id: Int
-    let name: String
-    let muscleGroup: String
+    let title: String
+    let equipment: String
     let difficulty: String
-    let duration: Int
-    let workoutType: String
-    let description: String
-    let equipmentNeeded: Bool
 
     enum CodingKeys: String, CodingKey {
         case id
-        case name
-        case muscleGroup = "muscle_group"
+        case title
+        case equipment
         case difficulty
-        case duration
-        case description
-        case equipmentNeeded = "equipment_needed"
-        case workoutType = "workout_type"
     }
 }
+
 
 enum WeightUnit: String, CaseIterable {
     case lbs = "lbs"

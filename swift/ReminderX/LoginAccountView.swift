@@ -73,7 +73,7 @@ struct LoginAccountView: View {
     }
     
     func loginUser() {
-        guard let url = URL(string: "http://192.168.0.146:3000/login") else {
+        guard let url = URL(string: "http://10.0.0.112:3000/login") else {
             errorMessage = "Invalid URL"
             return
         }

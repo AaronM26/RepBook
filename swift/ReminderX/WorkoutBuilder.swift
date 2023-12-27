@@ -5,20 +5,19 @@ struct WorkoutBuilderView: View {
     @Binding var isPresented: Bool
     @State private var exercises: [Exercise] = []
     @State private var selectedExercises: [Exercise] = []
-    @State private var workoutName: String = "Workout #1"
+    @State private var workoutName: String = "New Workout"
     @State private var searchText: String = ""
     @State private var isLoading = true
-    @State private var isEditingWorkoutName = false  // Added this line
-    @State private var selectedMuscleGroup: String = "All"
-    @State private var equipmentNeeded: Bool? = nil
-    @State private var selectedDifficulty: String = "All"
+    @State private var isEditingWorkoutName = false
+    @State private var currentPage = 1
+    @State private var isLoadingMore = false
+    @State private var hasMoreExercises = true
+
 
      
     var body: some View {
         VStack {
             WorkoutPreviewCardView(workoutName: $workoutName, selectedExercises: $selectedExercises)
-
-            // Save Button - Visible only if there are selected exercises
             if !selectedExercises.isEmpty {
                 Button(action: {
                     // Retrieve the user ID and auth key from Keychain
@@ -73,7 +72,6 @@ struct WorkoutBuilderView: View {
                 .overlay(
                     VStack {
                         exercisesHeader
-                        filtersView
                         exercisesList
                     }
                 )
@@ -100,32 +98,6 @@ struct WorkoutBuilderView: View {
         .padding(.horizontal)
         .padding(.top)
     }
-    private var exercisesList: some View {
-        Group {
-            if isLoading {
-                VStack {
-                    Spacer() // This spacer will push the loading symbol downwards
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .black))
-                        .scaleEffect(1.5)
-                        .padding()
-                    Spacer() // This spacer will ensure the loading symbol is centered
-                }
-            } else {
-                ScrollView {
-                    VStack(spacing: 15) { // Add spacing between items
-                        ForEach(filteredExercises) { exercise in
-                            ExerciseCard(exercise: exercise, onAdd: {
-                                addExercise(exercise)
-                            })
-                        }
-                    }
-                    .padding(.bottom) 
-                }
-            }
-        }
-    }
-
     
     private var workoutPreview: some View {
         RoundedRectangle(cornerRadius: 20)
@@ -163,80 +135,78 @@ struct WorkoutBuilderView: View {
     }
     
     private func loadExercises() {
-        NetworkManager.fetchExercises { fetchedExercises in
+        isLoadingMore = true
+        NetworkManager.fetchExercises(page: currentPage) { newExercises in
             DispatchQueue.main.async {
-                self.exercises = fetchedExercises
-                self.isLoading = false // Stop the loading animation
+                if !newExercises.isEmpty {
+                    self.exercises.append(contentsOf: newExercises)
+                } else {
+                    self.hasMoreExercises = false
+                }
+                self.isLoadingMore = false
             }
         }
     }
-    
-    private var filteredExercises: [Exercise] {
-        exercises.filter { exercise in
-            (selectedMuscleGroup == "All" || exercise.muscleGroup == selectedMuscleGroup) &&
-            (equipmentNeeded == nil || exercise.equipmentNeeded == equipmentNeeded) &&
-            (selectedDifficulty == "All" || exercise.difficulty == selectedDifficulty) &&
-            (searchText.isEmpty || exercise.name.localizedCaseInsensitiveContains(searchText))
-        }
-    }
 
-    
-    private var filtersView: some View {
-        HStack {
-            // Muscle Group Filter
-            filterButton(
-                symbol: "figure.walk", // SF Symbol for Muscle Group
-                selection: $selectedMuscleGroup,
-                options: ["All", "Triceps", "Biceps", "Upper Back", "Lower Back", "Abs", "Quads", "Calves", "Glutes"]
-            )
-            
-            // Equipment Needed Filter
-            RoundedRectangle(cornerRadius: 15)
-                .fill(Color.gray.opacity(0.05))
-                .overlay(
-                    Toggle(isOn: equipmentNeededBinding) {
-                        Image(systemName: "wrench.and.screwdriver") // SF Symbol for Equipment
-                            .foregroundColor(.black)
-                    }
-                    .padding()
-                )
-                .frame(height: 44)
-            
-            // Difficulty Filter
-            filterButton(
-                symbol: "waveform.path.ecg", // SF Symbol for Difficulty
-                selection: $selectedDifficulty,
-                options: ["All", "Beginner", "Intermediate", "Advanced"]
-            )
-        }
-        .padding(.horizontal)
+    private func loadMoreExercises() {
+        guard hasMoreExercises, !isLoadingMore else { return }
+        currentPage += 1
+        loadExercises()
     }
-
-    private func filterButton<T: Hashable>(symbol: String, selection: Binding<T>, options: [T]) -> some View {
-        Menu {
-            Picker(selection: selection, label: Image(systemName: symbol)) {
-                ForEach(options, id: \.self) { option in
-                    Text("\(String(describing: option))") // Text representation of the option
+    
+    private var exercisesList: some View {
+        ScrollView {
+            VStack(spacing: 15) {
+                ForEach(exercises) { exercise in
+                    ExerciseCard(exercise: exercise, onAdd: { addExercise(exercise) })
+                }
+                
+                if isLoadingMore {
+                    ProgressView()
                 }
             }
-        } label: {
-            RoundedRectangle(cornerRadius: 15)
-                .fill(Color.gray.opacity(0.05))
-                .overlay(
-                    Image(systemName: symbol) // Display the SF Symbol
-                        .foregroundColor(.black) // Set the symbol color to black
-                        .padding()
-                )
-                .frame(height: 44)
+            .padding(.bottom)
+            .onReachBottom(perform: loadMoreExercises)
+        }
+    }
+}
+
+struct OnReachBottomModifier: ViewModifier {
+    var action: () -> Void
+
+    func body(content: Content) -> some View {
+        content.background(
+            GeometryReader { geometry in
+                Color.clear.preference(key: ViewOffsetKey.self, value: geometry.frame(in: .global).maxY)
+            }
+        )
+        .onPreferenceChange(ViewOffsetKey.self) { maxY in
+            DispatchQueue.main.async {
+                actionIfNeeded(maxY: maxY)
+            }
         }
     }
 
+    private func actionIfNeeded(maxY: CGFloat) {
+        guard let rootView = UIApplication.shared.windows.first?.rootViewController?.view else { return }
+        let rootViewHeight = rootView.frame.size.height
+        let threshold = maxY - rootViewHeight
 
-    
-    private var equipmentNeededBinding: Binding<Bool> {
-        Binding<Bool>(
-            get: { self.equipmentNeeded ?? false },
-            set: { self.equipmentNeeded = $0 }
-        )
+        if threshold < 50 {
+            action()
+        }
+    }
+}
+
+struct ViewOffsetKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value += nextValue()
+    }
+}
+
+extension View {
+    func onReachBottom(perform action: @escaping () -> Void) -> some View {
+        self.modifier(OnReachBottomModifier(action: action))
     }
 }

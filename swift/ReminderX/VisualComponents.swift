@@ -179,15 +179,13 @@ struct ExerciseCardView: View {
     @State private var reps: Int = 10 // Default reps
     let colorScheme = ColorSchemeManager.shared.currentColorScheme
 
-    // Define constants for the desired width and height
-    private let cardWidth: CGFloat = 270 // Example width, adjust as needed
-    private let cardHeight: CGFloat = 100 // Example height, adjust as needed
+    private let cardWidth: CGFloat = 270
+    private let cardHeight: CGFloat = 100
 
     var body: some View {
         VStack(alignment: .leading) {
-            // Title and Trash icon
             HStack {
-                Text(exercise.name)
+                Text(exercise.title) // Updated from exercise.name
                     .font(.title3)
                     .fontWeight(.bold)
                 Spacer()
@@ -197,20 +195,10 @@ struct ExerciseCardView: View {
                 }
             }
 
-            // Description
-            Text(exercise.description)
+            // Updated to display the equipment and difficulty
+            Text("Equipment: \(exercise.equipment), Difficulty: \(exercise.difficulty)")
                 .font(.footnote)
                 .foregroundColor(.gray)
-
-            // Tags
-            HStack {
-                TagView(text: exercise.muscleGroup, color: colorScheme.med)
-                TagView(text: exercise.difficulty, color: colorScheme.med)
-                TagView(text: exercise.workoutType, color: colorScheme.med)
-                if exercise.equipmentNeeded {
-                    TagView(text: "Equipment", color: colorScheme.med)
-                }
-            }
         }
         .padding()
         .frame(width: cardWidth, height: cardHeight)
@@ -218,6 +206,7 @@ struct ExerciseCardView: View {
         .cornerRadius(15)
     }
 }
+
 
 struct WorkoutCardView: View {
     var workout: Workout // Assuming Workout struct holds workout details
@@ -248,7 +237,7 @@ struct WorkoutCardView: View {
         .padding()
         .frame(maxWidth: .infinity) // Makes the card take up the full width of the screen
         .background(Color.gray.opacity(0.05))
-        .cornerRadius(15)
+        .cornerRadius(20)
         .padding(.horizontal) // Adds padding on the sides for some space from screen edges
     }
 
@@ -298,13 +287,12 @@ struct ExerciseCard: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 5) {
-                Text(exercise.name)
+                Text(exercise.title) // Updated from exercise.name
                     .font(.headline)
             }
 
             Spacer()
 
-            // Button placed outside the VStack but within the HStack
             Button(action: onAdd) {
                 Image(systemName: "plus")
                     .resizable()
@@ -314,7 +302,7 @@ struct ExerciseCard: View {
                     .foregroundColor(.black.opacity(0.7))
                     .cornerRadius(10)
             }
-            .padding(.trailing, 10) // Add some trailing padding to align properly
+            .padding(.trailing, 10)
         }
         .padding()
         .background(RoundedRectangle(cornerRadius: 20).fill(Color.gray.opacity(0.05)))
@@ -328,9 +316,9 @@ struct CompressedExerciseCard: View {
 
     var body: some View {
         VStack(alignment: .leading) {
-            Text(exercise.name)
+            Text(exercise.title) // Updated from exercise.name
                 .font(.headline)
-            Text(exercise.muscleGroup)
+            Text("Difficulty: \(exercise.difficulty)") // Updated to show difficulty
                 .font(.subheadline)
         }
         .padding()

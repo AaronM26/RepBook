@@ -94,13 +94,9 @@ struct HomeView: View {
                                             .foregroundColor(colorScheme == .light ? .white : .black)
                                     }
                                 }
-                                .padding(.leading, 30)
-                                
-                                Spacer()
                             }
                         }
                     }
-                    .padding(.bottom, 0)
                     
                     
                     ScrollView {
@@ -135,6 +131,7 @@ struct HomeView: View {
                             .padding(.top)
                         }
                         .padding(.horizontal)
+                        .padding(.bottom)
                         .onAppear {
                             withAnimation(Animation.linear(duration: 8).repeatForever(autoreverses: false)) {
                                 gradientRotation = 360
@@ -393,8 +390,7 @@ struct HomeView: View {
             }
         }
     }
-    
-    // Example usage in the aiToolCardView
+
     private func aiToolCardView(selectedCardIndex: Binding<Int>, currentColorScheme: (dark: Color, med: Color, light: Color)) -> some View {
         let exampleData: [(title: String, number: Int)] = [
             ("Strength", 200),
