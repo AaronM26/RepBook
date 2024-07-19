@@ -1,10 +1,3 @@
-dbms3005 final assignment 
-Aaron Mclean
-101226419
-December 10th 2023
-
-YOUTUBE VIDEO: https://youtu.be/9mxV7FEH1j8 
-
 INSTALL AND SETUP 
 
     bash
